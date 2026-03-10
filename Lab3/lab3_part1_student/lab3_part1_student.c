@@ -158,7 +158,28 @@ static void vUartManagerTask(void *pvParameters)
     while (1) {
         if (report_flag) {
             // TODO 14: send $ until a $ is received
-			
+			 while (1) {
+                xQueueSend(uart_to_spi, &dummy, 0);
+
+                // short delay so SPI_MAIN + SPI_SUB run
+                vTaskDelay(1);
+
+                // Drain whatever came back; stop when we see '$' OR '\n' (start of report)
+                if (xQueueReceive(spi_to_uart, &spi_byte, 0)) {
+                    if (spi_byte == CHAR_DOLLAR || spi_byte == '\n') {
+                        // If it's '\n', print it (it's part of report).
+                        if (spi_byte == '\n') {
+                            uartWriteByte(spi_byte);
+                        }
+                        break;
+                    } else {
+                        // Normal echo byte; print it
+                        uartWriteByte(spi_byte);
+                    }
+                }
+            }
+
+            report_flag = 0;
         }
         
         if (uartReadByte(&uart_byte)) {
@@ -173,12 +194,14 @@ static void vUartManagerTask(void *pvParameters)
 
             if (uart_loopback && command_flag == 1) {
                 // TODO 1: write to uart
+                uartWriteByte(uart_byte);
 
                 if (terminationSequence(rolling)) {
                     terminateInput();
                 }
             } else if (command_flag == 2) {
 				// TODO 2: send to uart_to_spi
+                xQueueSend(uart_to_spi, &uart_byte, 0);
 
                 if (!spi_loopback && terminationSequence(rolling)) {
                     terminateInput();
@@ -215,6 +238,7 @@ static void vSpiMainTask(void *pvParameters)
                 if (!spi_loopback) { // if spi_loopback is disabled echoes back the received bytes
                     // TODO 3: echo back received bytes by sending to the appropriate queue
 					// after this is implemented spi loopback diabled should echo back the received bytes
+                    xQueueSend(spi_to_uart, &uart_byte, 0);
 					
                 } else {		// if spi loopback is enabled prepare to send data frames
                     tx_frame[frame_index] = uart_byte; // load byte into data frame
@@ -225,6 +249,12 @@ static void vSpiMainTask(void *pvParameters)
 						// TODO 9: master transfer
 						// perform the SPI sequence for a master data transfer (write and read)
 						// after transmission send data to queue
+                        spiMasterTransfer(tx_frame, rx_frame, TRANSFER_SIZE_IN_BYTES);
+
+                        for (i = 0; i < TRANSFER_SIZE_IN_BYTES; i++) {
+                            xQueueSend(spi_to_uart, &rx_frame[i], 0);
+                        }
+                        //
 
                         frame_index = 0;
                     }
@@ -265,6 +295,9 @@ static void vSpiSubTask(void *pvParameters)
     while (1) {
         if (spi_loopback && command_flag == 2) {
 			// TODO 10: prepare for transmission, load data into tx_frame
+            spiSlaveTransfer(tx_frame, rx_frame, TRANSFER_SIZE_IN_BYTES);
+
+            //
 			
 			if (report_stream_active) {
 				// fill tx_buffer with control characters
@@ -299,6 +332,9 @@ static void vSpiSubTask(void *pvParameters)
                 }
 				
 				// TODO 11: keep track of total received bytes over SPI and the current message byte count
+                total_bytes_received_over_spi++;
+                message_byte_count++;
+                //
 
                 updateRollingBuffer(rolling, current);
 
@@ -306,11 +342,29 @@ static void vSpiSubTask(void *pvParameters)
 				if (terminationSequence(rolling)) {
                     int chunk_len;
 					// TODO 12: keep track of the number of messages received
+                    total_messages_received++;
+                    last_message_byte_count = message_byte_count;
 
+                    //
 
                     message_byte_count = 0;
 					
 					// TODO 13: generate report string. hint: use report_len = snprintf()
+
+                    report_len = snprintf(report, sizeof(report),
+                        "\nNumber of bytes received over SPI:%d\nLast message byte count: %d\nTotal messages received: %d\n",
+                        total_bytes_received_over_spi,
+                        last_message_byte_count,
+                        total_messages_received);
+
+                    if (report_len < 0) {
+                        report_len = 0;
+                    }
+                    if (report_len > (int)sizeof(report)) {
+                        report_len = (int)sizeof(report);
+                    }
+                    
+                    //
 
                     report_idx = 0;  // index of sent byte
                     report_flag = 1; // signals uart task to flush the report
