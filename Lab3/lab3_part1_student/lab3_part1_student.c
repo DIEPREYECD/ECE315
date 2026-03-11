@@ -158,23 +158,17 @@ static void vUartManagerTask(void *pvParameters)
     while (1) {
         if (report_flag) {
             // TODO 14: send $ until a $ is received
-			 while (1) {
+			while (1) {
                 xQueueSend(uart_to_spi, &dummy, 0);
 
-                // short delay so SPI_MAIN + SPI_SUB run
-                vTaskDelay(1);
-
-                // Drain whatever came back; stop when we see '$' OR '\n' (start of report)
                 if (xQueueReceive(spi_to_uart, &spi_byte, 0)) {
-                    if (spi_byte == CHAR_DOLLAR || spi_byte == '\n') {
-                        // If it's '\n', print it (it's part of report).
-                        if (spi_byte == '\n') {
-                            uartWriteByte(spi_byte);
-                        }
-                        break;
-                    } else {
+                    if (spi_byte != CHAR_DOLLAR) {
                         // Normal echo byte; print it
+                        // xil_printf("\nReport byte: ");
                         uartWriteByte(spi_byte);
+                    }
+                    else {
+                        break;
                     }
                 }
             }
@@ -210,7 +204,10 @@ static void vUartManagerTask(void *pvParameters)
         }
 
         while (xQueueReceive(spi_to_uart, &spi_byte, 0)) {
-            uartWriteByte(spi_byte);
+            if (spi_byte != CHAR_DOLLAR) {
+                // xil_printf("\nspi_to_uart says: ");
+                uartWriteByte(spi_byte);
+            }
         }
 
         vTaskDelay(1);
@@ -250,6 +247,8 @@ static void vSpiMainTask(void *pvParameters)
 						// perform the SPI sequence for a master data transfer (write and read)
 						// after transmission send data to queue
                         spiMasterTransfer(tx_frame, rx_frame, TRANSFER_SIZE_IN_BYTES);
+                        // xil_printf("\nSPI Main tx= %u (%c) , rx= %u (%c)", tx_frame[0], tx_frame[0], rx_frame[0], rx_frame[0]);
+
 
                         for (i = 0; i < TRANSFER_SIZE_IN_BYTES; i++) {
                             xQueueSend(spi_to_uart, &rx_frame[i], 0);
@@ -296,6 +295,7 @@ static void vSpiSubTask(void *pvParameters)
         if (spi_loopback && command_flag == 2) {
 			// TODO 10: prepare for transmission, load data into tx_frame
             spiSlaveTransfer(tx_frame, rx_frame, TRANSFER_SIZE_IN_BYTES);
+            // xil_printf("\nSPI Sub tx= %u (%c) , rx= %u (%c) \n", tx_frame[0], tx_frame[0], rx_frame[0], rx_frame[0]);
 
             //
 			
@@ -344,6 +344,8 @@ static void vSpiSubTask(void *pvParameters)
 					// TODO 12: keep track of the number of messages received
                     total_messages_received++;
                     last_message_byte_count = message_byte_count;
+                    last_message_byte_count -=3;
+                    total_bytes_received_over_spi -= 3;
 
                     //
 

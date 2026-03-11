@@ -85,6 +85,7 @@ void spiMasterTransfer(const u8 *tx, u8 *rx, int byteCount)
 	}
 
 	spiMasterWrite(tx, byteCount);
+    vTaskDelay(1);
 	spiMasterRead(rx, byteCount);
 }
 
