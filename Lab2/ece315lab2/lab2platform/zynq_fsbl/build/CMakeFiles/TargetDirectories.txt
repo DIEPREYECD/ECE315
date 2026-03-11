@@ -1,0 +1,3 @@
+C:/Users/diepreye/Desktop/ece315lab2/lab2platform/zynq_fsbl/build/CMakeFiles/fsbl.elf.dir
+C:/Users/diepreye/Desktop/ece315lab2/lab2platform/zynq_fsbl/build/CMakeFiles/edit_cache.dir
+C:/Users/diepreye/Desktop/ece315lab2/lab2platform/zynq_fsbl/build/CMakeFiles/rebuild_cache.dir

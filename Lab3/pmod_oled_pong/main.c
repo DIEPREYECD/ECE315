@@ -45,15 +45,16 @@
 #include "sleep.h"
 #include "PmodOLED.h"
 #include "OLEDControllerCustom.h"
+#include "rgb_led.h"
 
 /******************************************************************************/
 /* Device Definitions
 /******************************************************************************/
 // Button/Switch GPIO
 #define BTN_DEVICE_ID       XPAR_GPIO_INPUTS_BASEADDR
-#define LED_DEVICE_ID        XPAR_GPIO_LEDS_BASEADDR
+#define LED_DEVICE_ID       XPAR_GPIO_LEDS_BASEADDR
 #define BTN_CHANNEL          1
-#define LED_CHANNEL          1
+#define GREEN_LED_CHANNEL    1
 
 // OLED Configuration
 #define OLED_GPIO_ADDR       XPAR_GPIO_OLED_BASEADDR
@@ -63,8 +64,8 @@
 /* Game Constants
 /******************************************************************************/
 // OLED Display Dimensions
-#define OLED_WIDTH   128
-#define OLED_HEIGHT  32
+#define OLED_WIDTH   OledColMax
+#define OLED_HEIGHT OledRowMax
 
 // Game boundaries (keeping 1 pixel margin for border)
 #define BORDER_LEFT     1
@@ -108,7 +109,6 @@ XGpio ledInst;
 
 // Note: LED channel 1 = Green LEDs (LD0-LD2 for lives)
 //       LED channel 2 = RGB LED (for game state)
-//       Using channel 1 for simplicity - RGB will be on same device
 static volatile GameState gameState = GAME_PLAYING;
 static volatile int score = 0;
 static volatile int lives = INITIAL_LIVES;
@@ -181,7 +181,10 @@ int main()
         xil_printf("GPIO LED Initialization failed.\r\n");
         return XST_FAILURE;
     }
-    XGpio_SetDataDirection(&ledInst, LED_CHANNEL, 0x0);  // All outputs
+    XGpio_SetDataDirection(&ledInst, GREEN_LED_CHANNEL, 0x0);
+    XGpio_SetDataDirection(&ledInst, RGB_CHANNEL, 0x0);
+    XGpio_DiscreteWrite(&ledInst, GREEN_LED_CHANNEL, 0x0);
+    XGpio_DiscreteWrite(&ledInst, RGB_CHANNEL, RGB_OFF);
 
     xil_printf("Initialization Complete!\r\n");
     xil_printf("Controls: BTN0=Left, BTN1=Right, SW0=Difficulty, SW1/BTN2=Pause, BTN3=Reset\r\n");
@@ -359,25 +362,26 @@ static void vOledTask(void *pvParameters)
 /******************************************************************************/
 static void vLedTask(void *pvParameters)
 {
-    u32 ledValue;
+    u32 greenLedValue;
+    u32 rgbValue;
     const TickType_t xDelay = pdMS_TO_TICKS(100);
 
     while (1) {
-        // Green LEDs show remaining lives (bits 0-2)
-        ledValue = lives & 0x07;
+        // Green LEDs show remaining lives on channel 1.
+        greenLedValue = lives & 0x07;
 
-        // RGB LED shows game state (bits 4-6 for R, G, B)
-        // Note: RGB LED is active low or high depending on hardware
-        // Using bits 4-6 for RGB: bit4=Red, bit5=Green, bit6=Blue
+        // RGB LED shows game state on channel 2 using 3-bit color codes.
+        rgbValue = RGB_OFF;
         if (gameState == GAME_PLAYING) {
-            ledValue |= 0x20;  // Green LED on (playing)
+            rgbValue = RGB_GREEN;
         } else if (gameState == GAME_PAUSED) {
-            ledValue |= 0x40;  // Blue LED on (paused)
+            rgbValue = RGB_BLUE;
         } else if (gameState == GAME_GAMEOVER) {
-            ledValue |= 0x10;  // Red LED on (game over)
+            rgbValue = RGB_RED;
         }
 
-        XGpio_DiscreteWrite(&ledInst, LED_CHANNEL, ledValue);
+        XGpio_DiscreteWrite(&ledInst, GREEN_LED_CHANNEL, greenLedValue);
+        XGpio_DiscreteWrite(&ledInst, RGB_CHANNEL, rgbValue);
 
         vTaskDelay(xDelay);
     }
