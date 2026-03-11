@@ -163,7 +163,7 @@ int main()
 
     // Initialize OLED
     // orientation: 0 = normal, invert: 0 = normal colors (black background)
-    OLED_Begin(&oledDevice, OLED_GPIO_ADDR, OLED_SPI_ADDR, 0, 0);
+    OLED_Begin(&oledDevice, OLED_GPIO_ADDR, OLED_SPI_ADDR, 1, 0);
     OLED_SetDrawMode(&oledDevice, 0);
     OLED_SetCharUpdate(&oledDevice, 0);  // Manual update
 
@@ -510,7 +510,7 @@ static void drawPaddle(void)
     for (i = 0; i < PADDLE_HEIGHT; i++) {
         OLED_MoveTo(&oledDevice, paddleX, PADDLE_Y + i);
         for (j = 0; j < PADDLE_WIDTH; j++) {
-            OLED_DrawPixel(&oledDevice);
+            OLED_DrawLineTo(&oledDevice, paddleX + j, PADDLE_Y + i);
         }
     }
 }
@@ -524,7 +524,7 @@ static void drawBall(void)
     for (i = 0; i < BALL_SIZE; i++) {
         OLED_MoveTo(&oledDevice, ballX, ballY + i);
         for (j = 0; j < BALL_SIZE; j++) {
-            OLED_DrawPixel(&oledDevice);
+            OLED_DrawLineTo(&oledDevice, ballX + j, ballY + i);
         }
     }
 }
@@ -555,11 +555,11 @@ static void drawState(void)
         OLED_PutString(&oledDevice, stateStr);
     } else {
         // Show difficulty and lives
-        OLED_SetCursor(&oledDevice, 12, 0);
+        OLED_SetCursor(&oledDevice, 10, 0);
         OLED_PutString(&oledDevice, difficulty ? "F" : "S");
 
         // Lives as hearts or simple indicator
-        OLED_SetCursor(&oledDevice, 14, 0);
+        OLED_SetCursor(&oledDevice, 12, 0);
         snprintf(stateStr, sizeof(stateStr), "L:%d", lives);
         OLED_PutString(&oledDevice, stateStr);
     }
