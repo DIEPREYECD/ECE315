@@ -124,6 +124,18 @@ typedef struct
     u32 pauseToggleSequence;
 } InputStateMessage;
 
+typedef struct
+{
+    GameState gameState;
+    int score;
+    int lives;
+    int paddleX;
+    int ballX;
+    int ballY;
+    int ballVelX;
+    int ballVelY;
+} GameData;
+
 /******************************************************************************/
 /* Global Variables
 ******************************************************************************/
@@ -135,26 +147,11 @@ XGpio btnInst;
 XGpio ledInst;
 XGpio swInst;
 
-// Note: LED channel 1 = Green LEDs (LD0-LD2 for lives)
-//       LED channel 2 = RGB LED (for game state)
-static volatile GameState gameState = GAME_PLAYING;
-static volatile int score = 0;
-static volatile int lives = INITIAL_LIVES;
-
-// Paddle position
-static volatile int paddleX = (OLED_WIDTH - PADDLE_WIDTH) / 2;
-
-// Ball position and velocity
-static volatile int ballX = OLED_WIDTH / 2;
-static volatile int ballY = OLED_HEIGHT / 2;
-static volatile int ballVelX = 1;
-static volatile int ballVelY = -1;
-
 // Task handles
 static TaskHandle_t xGameTaskHandle = NULL;
 static TaskHandle_t xOledTaskHandle = NULL;
 
-// Queue carrying the latest LED snapshot from the game task.
+// Queues carrying the latest task snapshots.
 static QueueHandle_t xInputStateQueue = NULL;
 static QueueHandle_t xLedStateQueue = NULL;
 static QueueHandle_t xOledStateQueue = NULL;
@@ -167,10 +164,10 @@ static void vGameTask(void *pvParameters);
 static void vOledTask(void *pvParameters);
 static void vLedTask(void *pvParameters);
 
-static void initGame(void);
-static void resetBall(void);
-static void updatePaddle(int direction);
-static void updateBall(void);
+static void initGame(GameData *game);
+static void resetBall(GameData *game);
+static void updatePaddle(GameData *game, int direction);
+static void updateBall(GameData *game);
 static void drawBorder(void);
 static void drawPaddle(const OledStateMessage *state);
 static void drawBall(const OledStateMessage *state);
@@ -183,6 +180,7 @@ static void drawState(const OledStateMessage *state);
 int main()
 {
     int status;
+    GameData initialGame;
     InputStateMessage inputState = {0, 0, 0, 0, 0};
     LedStateMessage ledState;
     OledStateMessage oledState;
@@ -279,22 +277,21 @@ int main()
                 tskIDLE_PRIORITY + 1,
                 NULL);
 
-    // Initialize game
-    initGame();
+    initGame(&initialGame);
 
     xQueueOverwrite(xInputStateQueue, &inputState);
 
-    ledState.gameState = gameState;
-    ledState.lives = lives;
+    ledState.gameState = initialGame.gameState;
+    ledState.lives = initialGame.lives;
     xQueueOverwrite(xLedStateQueue, &ledState);
 
-    oledState.gameState = gameState;
-    oledState.score = score;
-    oledState.lives = lives;
+    oledState.gameState = initialGame.gameState;
+    oledState.score = initialGame.score;
+    oledState.lives = initialGame.lives;
     oledState.difficulty = inputState.difficulty;
-    oledState.paddleX = paddleX;
-    oledState.ballX = ballX;
-    oledState.ballY = ballY;
+    oledState.paddleX = initialGame.paddleX;
+    oledState.ballX = initialGame.ballX;
+    oledState.ballY = initialGame.ballY;
     xQueueOverwrite(xOledStateQueue, &oledState);
 
     // Start scheduler
@@ -361,11 +358,14 @@ static void vGameTask(void *pvParameters)
 {
     TickType_t xDelay;
     int speed;
+    GameData game;
     InputStateMessage inputState = {0, 0, 0, 0, 0};
     InputStateMessage latestInput;
     LedStateMessage ledState;
     OledStateMessage oledState;
     u32 lastPauseToggleSequence = 0;
+
+    initGame(&game);
 
     while (1)
     {
@@ -383,14 +383,14 @@ static void vGameTask(void *pvParameters)
         {
             if (((inputState.pauseToggleSequence - lastPauseToggleSequence) & 1U) != 0U)
             {
-                if (gameState == GAME_PLAYING)
+                if (game.gameState == GAME_PLAYING)
                 {
-                    gameState = GAME_PAUSED;
+                    game.gameState = GAME_PAUSED;
                     xil_printf("Game Paused\r\n");
                 }
-                else if (gameState == GAME_PAUSED)
+                else if (game.gameState == GAME_PAUSED)
                 {
-                    gameState = GAME_PLAYING;
+                    game.gameState = GAME_PLAYING;
                     xil_printf("Game Resumed\r\n");
                 }
             }
@@ -399,40 +399,40 @@ static void vGameTask(void *pvParameters)
         }
 
         // Handle reset (only when game over)
-        if (inputState.resetPressed && gameState == GAME_GAMEOVER)
+        if (inputState.resetPressed && game.gameState == GAME_GAMEOVER)
         {
-            initGame();
+            initGame(&game);
             xil_printf("Game Reset\r\n");
         }
 
         // Only update game when playing
-        if (gameState == GAME_PLAYING)
+        if (game.gameState == GAME_PLAYING)
         {
             // Update paddle position
             if (inputState.moveLeft)
             {
-                updatePaddle(-1);
+                updatePaddle(&game, -1);
             }
             if (inputState.moveRight)
             {
-                updatePaddle(1);
+                updatePaddle(&game, 1);
             }
 
             // Update ball
-            updateBall();
+            updateBall(&game);
         }
 
-        ledState.gameState = gameState;
-        ledState.lives = lives;
+        ledState.gameState = game.gameState;
+        ledState.lives = game.lives;
         xQueueOverwrite(xLedStateQueue, &ledState);
 
-        oledState.gameState = gameState;
-        oledState.score = score;
-        oledState.lives = lives;
+        oledState.gameState = game.gameState;
+        oledState.score = game.score;
+        oledState.lives = game.lives;
         oledState.difficulty = inputState.difficulty;
-        oledState.paddleX = paddleX;
-        oledState.ballX = ballX;
-        oledState.ballY = ballY;
+        oledState.paddleX = game.paddleX;
+        oledState.ballX = game.ballX;
+        oledState.ballY = game.ballY;
         xQueueOverwrite(xOledStateQueue, &oledState);
 
         vTaskDelay(xDelay);
@@ -528,113 +528,113 @@ static void vLedTask(void *pvParameters)
 ******************************************************************************/
 
 // Initialize/Reset game state
-static void initGame(void)
+static void initGame(GameData *game)
 {
-    gameState = GAME_PLAYING;
-    score = 0;
-    lives = INITIAL_LIVES;
-    paddleX = (OLED_WIDTH - PADDLE_WIDTH) / 2;
-    resetBall();
+    game->gameState = GAME_PLAYING;
+    game->score = 0;
+    game->lives = INITIAL_LIVES;
+    game->paddleX = (OLED_WIDTH - PADDLE_WIDTH) / 2;
+    resetBall(game);
 }
 
 // Reset ball to starting position
-static void resetBall(void)
+static void resetBall(GameData *game)
 {
-    ballX = OLED_WIDTH / 2;
-    ballY = OLED_HEIGHT / 3;
+    game->ballX = OLED_WIDTH / 2;
+    game->ballY = OLED_HEIGHT / 3;
     // Randomize horizontal direction
-    ballVelX = (rand() % 2 == 0) ? 1 : -1;
-    ballVelY = -1; // Always start moving up
+    game->ballVelX = (rand() % 2 == 0) ? 1 : -1;
+    game->ballVelY = -1; // Always start moving up
 }
 
 // Update paddle position
-static void updatePaddle(int direction)
+static void updatePaddle(GameData *game, int direction)
 {
-    paddleX += direction * 2; // Move 2 pixels at a time
+    game->paddleX += direction * 2; // Move 2 pixels at a time
 
     // Clamp to boundaries (accounting for paddle width)
-    if (paddleX < BORDER_LEFT)
+    if (game->paddleX < BORDER_LEFT)
     {
-        paddleX = BORDER_LEFT;
+        game->paddleX = BORDER_LEFT;
     }
-    if (paddleX + PADDLE_WIDTH > BORDER_RIGHT)
+    if (game->paddleX + PADDLE_WIDTH > BORDER_RIGHT)
     {
-        paddleX = BORDER_RIGHT - PADDLE_WIDTH;
+        game->paddleX = BORDER_RIGHT - PADDLE_WIDTH;
     }
 }
 
 // Update ball position and handle collisions
-static void updateBall(void)
+static void updateBall(GameData *game)
 {
     int newX, newY;
 
-    newX = ballX + ballVelX;
-    newY = ballY + ballVelY;
+    newX = game->ballX + game->ballVelX;
+    newY = game->ballY + game->ballVelY;
 
     // Wall collisions (left, right, top)
     if (newX <= BORDER_LEFT)
     {
         newX = BORDER_LEFT + 1;
-        ballVelX = -ballVelX;
+        game->ballVelX = -game->ballVelX;
     }
     if (newX + BALL_SIZE >= BORDER_RIGHT)
     {
         newX = BORDER_RIGHT - BALL_SIZE - 1;
-        ballVelX = -ballVelX;
+        game->ballVelX = -game->ballVelX;
     }
     if (newY <= BORDER_TOP)
     {
         newY = BORDER_TOP + 1;
-        ballVelY = -ballVelY;
+        game->ballVelY = -game->ballVelY;
     }
 
     // Paddle collision
     if (newY + BALL_SIZE >= PADDLE_Y &&
         newY + BALL_SIZE <= PADDLE_Y + PADDLE_HEIGHT &&
-        newX + BALL_SIZE >= paddleX &&
-        newX <= paddleX + PADDLE_WIDTH)
+        newX + BALL_SIZE >= game->paddleX &&
+        newX <= game->paddleX + PADDLE_WIDTH)
     {
 
         // Ball hit paddle - bounce up
-        ballVelY = -ballVelY;
+        game->ballVelY = -game->ballVelY;
         newY = PADDLE_Y - BALL_SIZE - 1;
 
         // Add some horizontal velocity variation based on where it hit paddle
-        int hitPos = (newX + BALL_SIZE / 2) - (paddleX + PADDLE_WIDTH / 2);
-        ballVelX = hitPos / 4; // Adjust horizontal speed
+        int hitPos = (newX + BALL_SIZE / 2) - (game->paddleX + PADDLE_WIDTH / 2);
+        game->ballVelX = hitPos / 4; // Adjust horizontal speed
 
         // Keep minimum horizontal speed
-        if (ballVelX == 0)
+        if (game->ballVelX == 0)
         {
-            ballVelX = (rand() % 2 == 0) ? 1 : -1;
+            game->ballVelX = (rand() % 2 == 0) ? 1 : -1;
         }
 
         // Increase score
-        score++;
+        game->score++;
     }
 
     // Ball went past paddle (bottom)
     if (newY > BORDER_BOTTOM)
     {
         // Lost a life
-        lives--;
+        game->lives--;
 
-        xil_printf("Life lost! Lives: %d, Score: %d\r\n", lives, score);
+        xil_printf("Life lost! Lives: %d, Score: %d\r\n", game->lives, game->score);
 
-        if (lives <= 0)
+        if (game->lives <= 0)
         {
-            gameState = GAME_GAMEOVER;
-            xil_printf("GAME OVER! Final Score: %d\r\n", score);
+            game->gameState = GAME_GAMEOVER;
+            xil_printf("GAME OVER! Final Score: %d\r\n", game->score);
         }
         else
         {
-            resetBall();
+            resetBall(game);
         }
     }
 
     // Update ball position
-    ballX = newX;
-    ballY = newY;
+    game->ballX = newX;
+    game->ballY = newY;
 }
 
 /******************************************************************************/
