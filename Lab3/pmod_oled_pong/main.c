@@ -168,6 +168,7 @@ static void initGame(GameData *game);
 static void resetBall(GameData *game);
 static void updatePaddle(GameData *game, int direction);
 static void updateBall(GameData *game);
+static void publishTaskSnapshots(const GameData *game, const InputStateMessage *inputState);
 static void drawBorder(void);
 static void drawPaddle(const OledStateMessage *state);
 static void drawBall(const OledStateMessage *state);
@@ -182,8 +183,6 @@ int main()
     int status;
     GameData initialGame;
     InputStateMessage inputState = {0, 0, 0, 0, 0};
-    LedStateMessage ledState;
-    OledStateMessage oledState;
 
     xil_printf("Initializing Pong Game...\r\n");
 
@@ -280,19 +279,7 @@ int main()
     initGame(&initialGame);
 
     xQueueOverwrite(xInputStateQueue, &inputState);
-
-    ledState.gameState = initialGame.gameState;
-    ledState.lives = initialGame.lives;
-    xQueueOverwrite(xLedStateQueue, &ledState);
-
-    oledState.gameState = initialGame.gameState;
-    oledState.score = initialGame.score;
-    oledState.lives = initialGame.lives;
-    oledState.difficulty = inputState.difficulty;
-    oledState.paddleX = initialGame.paddleX;
-    oledState.ballX = initialGame.ballX;
-    oledState.ballY = initialGame.ballY;
-    xQueueOverwrite(xOledStateQueue, &oledState);
+    publishTaskSnapshots(&initialGame, &inputState);
 
     // Start scheduler
     vTaskStartScheduler();
@@ -361,8 +348,6 @@ static void vGameTask(void *pvParameters)
     GameData game;
     InputStateMessage inputState = {0, 0, 0, 0, 0};
     InputStateMessage latestInput;
-    LedStateMessage ledState;
-    OledStateMessage oledState;
     u32 lastPauseToggleSequence = 0;
 
     initGame(&game);
@@ -422,18 +407,7 @@ static void vGameTask(void *pvParameters)
             updateBall(&game);
         }
 
-        ledState.gameState = game.gameState;
-        ledState.lives = game.lives;
-        xQueueOverwrite(xLedStateQueue, &ledState);
-
-        oledState.gameState = game.gameState;
-        oledState.score = game.score;
-        oledState.lives = game.lives;
-        oledState.difficulty = inputState.difficulty;
-        oledState.paddleX = game.paddleX;
-        oledState.ballX = game.ballX;
-        oledState.ballY = game.ballY;
-        xQueueOverwrite(xOledStateQueue, &oledState);
+        publishTaskSnapshots(&game, &inputState);
 
         vTaskDelay(xDelay);
     }
@@ -635,6 +609,25 @@ static void updateBall(GameData *game)
     // Update ball position
     game->ballX = newX;
     game->ballY = newY;
+}
+
+static void publishTaskSnapshots(const GameData *game, const InputStateMessage *inputState)
+{
+    LedStateMessage ledState;
+    OledStateMessage oledState;
+
+    ledState.gameState = game->gameState;
+    ledState.lives = game->lives;
+    xQueueOverwrite(xLedStateQueue, &ledState);
+
+    oledState.gameState = game->gameState;
+    oledState.score = game->score;
+    oledState.lives = game->lives;
+    oledState.difficulty = inputState->difficulty;
+    oledState.paddleX = game->paddleX;
+    oledState.ballX = game->ballX;
+    oledState.ballY = game->ballY;
+    xQueueOverwrite(xOledStateQueue, &oledState);
 }
 
 /******************************************************************************/
