@@ -51,47 +51,48 @@
 /* Device Definitions
 /******************************************************************************/
 // Button/Switch GPIO
-#define BTN_DEVICE_ID       XPAR_GPIO_INPUTS_BASEADDR
-#define LED_DEVICE_ID       XPAR_GPIO_LEDS_BASEADDR
-#define BTN_CHANNEL          1
-#define GREEN_LED_CHANNEL    1
+#define BTN_DEVICE_ID XPAR_GPIO_INPUTS_BASEADDR
+#define LED_DEVICE_ID XPAR_GPIO_LEDS_BASEADDR
+#define BTN_CHANNEL 1
+#define GREEN_LED_CHANNEL 1
 
 // OLED Configuration
-#define OLED_GPIO_ADDR       XPAR_GPIO_OLED_BASEADDR
-#define OLED_SPI_ADDR        XPAR_SPI_OLED_BASEADDR
+#define OLED_GPIO_ADDR XPAR_GPIO_OLED_BASEADDR
+#define OLED_SPI_ADDR XPAR_SPI_OLED_BASEADDR
 
 /******************************************************************************/
 /* Game Constants
 /******************************************************************************/
 // OLED Display Dimensions
-#define OLED_WIDTH   OledColMax
+#define OLED_WIDTH OledColMax
 #define OLED_HEIGHT OledRowMax
 
 // Game boundaries (keeping 1 pixel margin for border)
-#define BORDER_LEFT     1
-#define BORDER_RIGHT    (OLED_WIDTH - 2)
-#define BORDER_TOP      1
-#define BORDER_BOTTOM   (OLED_HEIGHT - 2)
+#define BORDER_LEFT 1
+#define BORDER_RIGHT (OLED_WIDTH - 2)
+#define BORDER_TOP 1
+#define BORDER_BOTTOM (OLED_HEIGHT - 2)
 
 // Paddle dimensions
-#define PADDLE_WIDTH    20
-#define PADDLE_HEIGHT   3
-#define PADDLE_Y        (OLED_HEIGHT - 8)  // Near bottom
+#define PADDLE_WIDTH 20
+#define PADDLE_HEIGHT 3
+#define PADDLE_Y (OLED_HEIGHT - 8) // Near bottom
 
 // Ball dimensions
-#define BALL_SIZE       3
+#define BALL_SIZE 3
 
 // Game speeds (in milliseconds between updates)
-#define SPEED_SLOW      80   // Lower difficulty
-#define SPEED_FAST      40   // Higher difficulty
+#define SPEED_SLOW 80 // Lower difficulty
+#define SPEED_FAST 40 // Higher difficulty
 
 // Initial lives
-#define INITIAL_LIVES   3
+#define INITIAL_LIVES 3
 
 /******************************************************************************/
 /* Game State Enumeration
 /******************************************************************************/
-typedef enum {
+typedef enum
+{
     GAME_PLAYING,
     GAME_PAUSED,
     GAME_GAMEOVER
@@ -106,13 +107,14 @@ PmodOLED oledDevice;
 // GPIO Instances
 XGpio btnInst;
 XGpio ledInst;
+XGpio swInst;
 
 // Note: LED channel 1 = Green LEDs (LD0-LD2 for lives)
 //       LED channel 2 = RGB LED (for game state)
 static volatile GameState gameState = GAME_PLAYING;
 static volatile int score = 0;
 static volatile int lives = INITIAL_LIVES;
-static volatile int difficulty = 0;  // 0 = slow, 1 = fast
+static volatile int difficulty = 0; // 0 = slow, 1 = fast
 
 // Paddle position
 static volatile int paddleX = (OLED_WIDTH - PADDLE_WIDTH) / 2;
@@ -145,7 +147,6 @@ static void initGame(void);
 static void resetBall(void);
 static void updatePaddle(int direction);
 static void updateBall(void);
-static int checkPaddleCollision(void);
 static void drawBorder(void);
 static void drawPaddle(void);
 static void drawBall(void);
@@ -165,19 +166,21 @@ int main()
     // orientation: 0 = normal, invert: 0 = normal colors (black background)
     OLED_Begin(&oledDevice, OLED_GPIO_ADDR, OLED_SPI_ADDR, 1, 0);
     OLED_SetDrawMode(&oledDevice, 0);
-    OLED_SetCharUpdate(&oledDevice, 0);  // Manual update
+    OLED_SetCharUpdate(&oledDevice, 0); // Manual update
 
     // Initialize Buttons
     status = XGpio_Initialize(&btnInst, BTN_DEVICE_ID);
-    if (status != XST_SUCCESS) {
+    if (status != XST_SUCCESS)
+    {
         xil_printf("GPIO Button Initialization failed.\r\n");
         return XST_FAILURE;
     }
-    XGpio_SetDataDirection(&btnInst, BTN_CHANNEL, 0xFF);  // All inputs
+    XGpio_SetDataDirection(&btnInst, BTN_CHANNEL, 0xFF); // btn inputs
 
     // Initialize LEDs
     status = XGpio_Initialize(&ledInst, LED_DEVICE_ID);
-    if (status != XST_SUCCESS) {
+    if (status != XST_SUCCESS)
+    {
         xil_printf("GPIO LED Initialization failed.\r\n");
         return XST_FAILURE;
     }
@@ -185,6 +188,16 @@ int main()
     XGpio_SetDataDirection(&ledInst, RGB_CHANNEL, 0x0);
     XGpio_DiscreteWrite(&ledInst, GREEN_LED_CHANNEL, 0x0);
     XGpio_DiscreteWrite(&ledInst, RGB_CHANNEL, RGB_OFF);
+
+    // Initialize SWITCHs
+    status = XGpio_Initialize(&swInst, BTN_DEVICE_ID);
+    if (status != XST_SUCCESS)
+    {
+        xil_printf("GPIO SWITCH Initialization failed.\r\n");
+        return XST_FAILURE;
+    }
+
+    XGpio_SetDataDirection(&swInst, 2, 0x00); // Switch inputs
 
     xil_printf("Initialization Complete!\r\n");
     xil_printf("Controls: BTN0=Left, BTN1=Right, SW0=Difficulty, SW1/BTN2=Pause, BTN3=Reset\r\n");
@@ -224,7 +237,8 @@ int main()
     // Start scheduler
     vTaskStartScheduler();
 
-    while(1);  // Should never reach here
+    while (1)
+        ; // Should never reach here
 
     return 0;
 }
@@ -235,44 +249,56 @@ int main()
 static void vInputTask(void *pvParameters)
 {
     u32 buttonVal;
+    u32 swVal;
     const TickType_t xDelay = pdMS_TO_TICKS(20);
 
-    while (1) {
+    while (1)
+    {
         // Read button/switch values
         buttonVal = XGpio_DiscreteRead(&btnInst, BTN_CHANNEL);
+        swVal = XGpio_DiscreteRead(&swInst, 2);
 
         // Extract individual button/switch states
         // Bits 0-3: Buttons BTN0-BTN3
         // Bits 8-11: Switches SW0-SW3 (if available in hardware)
 
         // BTN0 (bit 0): Move paddle left
-        if (buttonVal & 0x01) {
+        if (buttonVal & 0x01)
+        {
             moveLeft = 1;
         }
 
         // BTN1 (bit 1): Move paddle right
-        if (buttonVal & 0x02) {
+        if (buttonVal & 0x02)
+        {
             moveRight = 1;
         }
 
-        // SW0 (bit 8): Difficulty toggle
-        if (buttonVal & 0x100) {
-            difficulty = 1;  // Fast
-        } else {
-            difficulty = 0;  // Slow
+        // SW0: Difficulty toggle
+        if (swVal & 0x01)
+        {
+            difficulty = 1; // Fast
+            // xil_printf("Difficulty set to 1");
+        }
+        else
+        {
+            difficulty = 0; // Slow
+            // xil_printf("Difficulty set to 0");
         }
 
-        // SW1 (bit 9) OR BTN2 (bit 2): Pause toggle
+        // SW1 OR BTN2 (bit 2): Pause toggle
         // Use edge detection for pause (only toggle once per press)
         static int pause_prev = 0;
-        int pause_now = ((buttonVal & 0x200) || (buttonVal & 0x04)) ? 1 : 0;
-        if (pause_now && !pause_prev) {
+        int pause_now = ((swVal & 0x02) || (buttonVal & 0x04)) ? 1 : 0;
+        if (pause_now && !pause_prev)
+        {
             pauseToggle = 1;
         }
         pause_prev = pause_now;
 
         // BTN3 (bit 3): Reset game (only when game over)
-        if (buttonVal & 0x08) {
+        if (buttonVal & 0x08)
+        {
             resetGame = 1;
         }
 
@@ -288,38 +314,47 @@ static void vGameTask(void *pvParameters)
     TickType_t xDelay;
     int speed;
 
-    while (1) {
+    while (1)
+    {
         // Determine speed based on difficulty
         speed = difficulty ? SPEED_FAST : SPEED_SLOW;
         xDelay = pdMS_TO_TICKS(speed);
 
         // Handle pause toggle
-        if (pauseToggle) {
+        if (pauseToggle)
+        {
             pauseToggle = 0;
-            if (gameState == GAME_PLAYING) {
+            if (gameState == GAME_PLAYING)
+            {
                 gameState = GAME_PAUSED;
                 xil_printf("Game Paused\r\n");
-            } else if (gameState == GAME_PAUSED) {
+            }
+            else if (gameState == GAME_PAUSED)
+            {
                 gameState = GAME_PLAYING;
                 xil_printf("Game Resumed\r\n");
             }
         }
 
         // Handle reset (only when game over)
-        if (resetGame && gameState == GAME_GAMEOVER) {
+        if (resetGame && gameState == GAME_GAMEOVER)
+        {
             resetGame = 0;
             initGame();
             xil_printf("Game Reset\r\n");
         }
 
         // Only update game when playing
-        if (gameState == GAME_PLAYING) {
+        if (gameState == GAME_PLAYING)
+        {
             // Update paddle position
-            if (moveLeft) {
+            if (moveLeft)
+            {
                 updatePaddle(-1);
                 moveLeft = 0;
             }
-            if (moveRight) {
+            if (moveRight)
+            {
                 updatePaddle(1);
                 moveRight = 0;
             }
@@ -339,7 +374,8 @@ static void vOledTask(void *pvParameters)
 {
     const TickType_t xDelay = pdMS_TO_TICKS(50);
 
-    while (1) {
+    while (1)
+    {
         // Clear buffer
         OLED_ClearBuffer(&oledDevice);
 
@@ -366,17 +402,23 @@ static void vLedTask(void *pvParameters)
     u32 rgbValue;
     const TickType_t xDelay = pdMS_TO_TICKS(100);
 
-    while (1) {
+    while (1)
+    {
         // Green LEDs show remaining lives on channel 1.
         greenLedValue = lives & 0x07;
 
         // RGB LED shows game state on channel 2 using 3-bit color codes.
         rgbValue = RGB_OFF;
-        if (gameState == GAME_PLAYING) {
+        if (gameState == GAME_PLAYING)
+        {
             rgbValue = RGB_GREEN;
-        } else if (gameState == GAME_PAUSED) {
+        }
+        else if (gameState == GAME_PAUSED)
+        {
             rgbValue = RGB_BLUE;
-        } else if (gameState == GAME_GAMEOVER) {
+        }
+        else if (gameState == GAME_GAMEOVER)
+        {
             rgbValue = RGB_RED;
         }
 
@@ -408,19 +450,21 @@ static void resetBall(void)
     ballY = OLED_HEIGHT / 3;
     // Randomize horizontal direction
     ballVelX = (rand() % 2 == 0) ? 1 : -1;
-    ballVelY = -1;  // Always start moving up
+    ballVelY = -1; // Always start moving up
 }
 
 // Update paddle position
 static void updatePaddle(int direction)
 {
-    paddleX += direction * 2;  // Move 2 pixels at a time
+    paddleX += direction * 2; // Move 2 pixels at a time
 
     // Clamp to boundaries (accounting for paddle width)
-    if (paddleX < BORDER_LEFT) {
+    if (paddleX < BORDER_LEFT)
+    {
         paddleX = BORDER_LEFT;
     }
-    if (paddleX + PADDLE_WIDTH > BORDER_RIGHT) {
+    if (paddleX + PADDLE_WIDTH > BORDER_RIGHT)
+    {
         paddleX = BORDER_RIGHT - PADDLE_WIDTH;
     }
 }
@@ -434,15 +478,18 @@ static void updateBall(void)
     newY = ballY + ballVelY;
 
     // Wall collisions (left, right, top)
-    if (newX <= BORDER_LEFT) {
+    if (newX <= BORDER_LEFT)
+    {
         newX = BORDER_LEFT + 1;
         ballVelX = -ballVelX;
     }
-    if (newX + BALL_SIZE >= BORDER_RIGHT) {
+    if (newX + BALL_SIZE >= BORDER_RIGHT)
+    {
         newX = BORDER_RIGHT - BALL_SIZE - 1;
         ballVelX = -ballVelX;
     }
-    if (newY <= BORDER_TOP) {
+    if (newY <= BORDER_TOP)
+    {
         newY = BORDER_TOP + 1;
         ballVelY = -ballVelY;
     }
@@ -451,18 +498,20 @@ static void updateBall(void)
     if (newY + BALL_SIZE >= PADDLE_Y &&
         newY + BALL_SIZE <= PADDLE_Y + PADDLE_HEIGHT &&
         newX + BALL_SIZE >= paddleX &&
-        newX <= paddleX + PADDLE_WIDTH) {
+        newX <= paddleX + PADDLE_WIDTH)
+    {
 
         // Ball hit paddle - bounce up
         ballVelY = -ballVelY;
         newY = PADDLE_Y - BALL_SIZE - 1;
 
         // Add some horizontal velocity variation based on where it hit paddle
-        int hitPos = (newX + BALL_SIZE/2) - (paddleX + PADDLE_WIDTH/2);
-        ballVelX = hitPos / 4;  // Adjust horizontal speed
+        int hitPos = (newX + BALL_SIZE / 2) - (paddleX + PADDLE_WIDTH / 2);
+        ballVelX = hitPos / 4; // Adjust horizontal speed
 
         // Keep minimum horizontal speed
-        if (ballVelX == 0) {
+        if (ballVelX == 0)
+        {
             ballVelX = (rand() % 2 == 0) ? 1 : -1;
         }
 
@@ -471,16 +520,20 @@ static void updateBall(void)
     }
 
     // Ball went past paddle (bottom)
-    if (newY > BORDER_BOTTOM) {
+    if (newY > BORDER_BOTTOM)
+    {
         // Lost a life
         lives--;
 
         xil_printf("Life lost! Lives: %d, Score: %d\r\n", lives, score);
 
-        if (lives <= 0) {
+        if (lives <= 0)
+        {
             gameState = GAME_GAMEOVER;
             xil_printf("GAME OVER! Final Score: %d\r\n", score);
-        } else {
+        }
+        else
+        {
             resetBall();
         }
     }
@@ -507,9 +560,11 @@ static void drawPaddle(void)
     int i, j;
 
     // Draw filled rectangle for paddle
-    for (i = 0; i < PADDLE_HEIGHT; i++) {
+    for (i = 0; i < PADDLE_HEIGHT; i++)
+    {
         OLED_MoveTo(&oledDevice, paddleX, PADDLE_Y + i);
-        for (j = 0; j < PADDLE_WIDTH; j++) {
+        for (j = 0; j < PADDLE_WIDTH; j++)
+        {
             OLED_DrawLineTo(&oledDevice, paddleX + j, PADDLE_Y + i);
         }
     }
@@ -521,9 +576,11 @@ static void drawBall(void)
     int i, j;
 
     // Draw ball as small filled square
-    for (i = 0; i < BALL_SIZE; i++) {
+    for (i = 0; i < BALL_SIZE; i++)
+    {
         OLED_MoveTo(&oledDevice, ballX, ballY + i);
-        for (j = 0; j < BALL_SIZE; j++) {
+        for (j = 0; j < BALL_SIZE; j++)
+        {
             OLED_DrawLineTo(&oledDevice, ballX + j, ballY + i);
         }
     }
@@ -544,16 +601,21 @@ static void drawState(void)
 {
     char stateStr[16];
 
-    if (gameState == GAME_PAUSED) {
+    if (gameState == GAME_PAUSED)
+    {
         OLED_SetCursor(&oledDevice, 8, 1);
         OLED_PutString(&oledDevice, "PAUSED");
-    } else if (gameState == GAME_GAMEOVER) {
+    }
+    else if (gameState == GAME_GAMEOVER)
+`    {
         OLED_SetCursor(&oledDevice, 5, 1);
         OLED_PutString(&oledDevice, "GAME OVER");
         OLED_SetCursor(&oledDevice, 6, 2);
         snprintf(stateStr, sizeof(stateStr), "Score:%d", score);
         OLED_PutString(&oledDevice, stateStr);
-    } else {
+    }
+    else
+    {
         // Show difficulty and lives
         OLED_SetCursor(&oledDevice, 10, 0);
         OLED_PutString(&oledDevice, difficulty ? "F" : "S");
