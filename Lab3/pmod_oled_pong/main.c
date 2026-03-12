@@ -104,6 +104,17 @@ typedef struct
     int lives;
 } LedStateMessage;
 
+typedef struct
+{
+    GameState gameState;
+    int score;
+    int lives;
+    int difficulty;
+    int paddleX;
+    int ballX;
+    int ballY;
+} OledStateMessage;
+
 /******************************************************************************/
 /* Global Variables
 ******************************************************************************/
@@ -143,6 +154,7 @@ static TaskHandle_t xOledTaskHandle = NULL;
 
 // Queue carrying the latest LED snapshot from the game task.
 static QueueHandle_t xLedStateQueue = NULL;
+static QueueHandle_t xOledStateQueue = NULL;
 
 /******************************************************************************/
 /* Function Prototypes
@@ -157,10 +169,10 @@ static void resetBall(void);
 static void updatePaddle(int direction);
 static void updateBall(void);
 static void drawBorder(void);
-static void drawPaddle(void);
-static void drawBall(void);
-static void drawScore(void);
-static void drawState(void);
+static void drawPaddle(const OledStateMessage *state);
+static void drawBall(const OledStateMessage *state);
+static void drawScore(const OledStateMessage *state);
+static void drawState(const OledStateMessage *state);
 
 /******************************************************************************/
 /* Main Function
@@ -169,6 +181,7 @@ int main()
 {
     int status;
     LedStateMessage ledState;
+    OledStateMessage oledState;
 
     xil_printf("Initializing Pong Game...\r\n");
 
@@ -216,6 +229,13 @@ int main()
         return XST_FAILURE;
     }
 
+    xOledStateQueue = xQueueCreate(1, sizeof(OledStateMessage));
+    if (xOledStateQueue == NULL)
+    {
+        xil_printf("OLED state queue creation failed.\r\n");
+        return XST_FAILURE;
+    }
+
     xil_printf("Initialization Complete!\r\n");
     xil_printf("Controls: BTN0=Left, BTN1=Right, SW0=Difficulty, SW1/BTN2=Pause, BTN3=Reset\r\n");
 
@@ -254,6 +274,15 @@ int main()
     ledState.gameState = gameState;
     ledState.lives = lives;
     xQueueOverwrite(xLedStateQueue, &ledState);
+
+    oledState.gameState = gameState;
+    oledState.score = score;
+    oledState.lives = lives;
+    oledState.difficulty = difficulty;
+    oledState.paddleX = paddleX;
+    oledState.ballX = ballX;
+    oledState.ballY = ballY;
+    xQueueOverwrite(xOledStateQueue, &oledState);
 
     // Start scheduler
     vTaskStartScheduler();
@@ -335,6 +364,7 @@ static void vGameTask(void *pvParameters)
     TickType_t xDelay;
     int speed;
     LedStateMessage ledState;
+    OledStateMessage oledState;
 
     while (1)
     {
@@ -389,6 +419,15 @@ static void vGameTask(void *pvParameters)
         ledState.lives = lives;
         xQueueOverwrite(xLedStateQueue, &ledState);
 
+        oledState.gameState = gameState;
+        oledState.score = score;
+        oledState.lives = lives;
+        oledState.difficulty = difficulty;
+        oledState.paddleX = paddleX;
+        oledState.ballX = ballX;
+        oledState.ballY = ballY;
+        xQueueOverwrite(xOledStateQueue, &oledState);
+
         vTaskDelay(xDelay);
     }
 }
@@ -399,18 +438,33 @@ static void vGameTask(void *pvParameters)
 static void vOledTask(void *pvParameters)
 {
     const TickType_t xDelay = pdMS_TO_TICKS(50);
+    OledStateMessage oledState = {
+        GAME_PLAYING,
+        0,
+        INITIAL_LIVES,
+        0,
+        (OLED_WIDTH - PADDLE_WIDTH) / 2,
+        OLED_WIDTH / 2,
+        OLED_HEIGHT / 3};
+    
+    OledStateMessage dummyState;
 
     while (1)
     {
+        if (xQueueReceive(xOledStateQueue, &dummyState, 0) == pdTRUE)
+        {
+            oledState = dummyState;
+        }
+
         // Clear buffer
         OLED_ClearBuffer(&oledDevice);
 
         // Draw game elements
         drawBorder();
-        drawPaddle();
-        drawBall();
-        drawScore();
-        drawState();
+        drawPaddle(&oledState);
+        drawBall(&oledState);
+        drawScore(&oledState);
+        drawState(&oledState);
 
         // Update display
         OLED_Update(&oledDevice);
@@ -588,74 +642,74 @@ static void drawBorder(void)
 }
 
 // Draw paddle
-static void drawPaddle(void)
+static void drawPaddle(const OledStateMessage *state)
 {
     int i, j;
 
     // Draw filled rectangle for paddle
     for (i = 0; i < PADDLE_HEIGHT; i++)
     {
-        OLED_MoveTo(&oledDevice, paddleX, PADDLE_Y + i);
+        OLED_MoveTo(&oledDevice, state->paddleX, PADDLE_Y + i);
         for (j = 0; j < PADDLE_WIDTH; j++)
         {
-            OLED_DrawLineTo(&oledDevice, paddleX + j, PADDLE_Y + i);
+            OLED_DrawLineTo(&oledDevice, state->paddleX + j, PADDLE_Y + i);
         }
     }
 }
 
 // Draw ball
-static void drawBall(void)
+static void drawBall(const OledStateMessage *state)
 {
     int i, j;
 
     // Draw ball as small filled square
     for (i = 0; i < BALL_SIZE; i++)
     {
-        OLED_MoveTo(&oledDevice, ballX, ballY + i);
+        OLED_MoveTo(&oledDevice, state->ballX, state->ballY + i);
         for (j = 0; j < BALL_SIZE; j++)
         {
-            OLED_DrawLineTo(&oledDevice, ballX + j, ballY + i);
+            OLED_DrawLineTo(&oledDevice, state->ballX + j, state->ballY + i);
         }
     }
 }
 
 // Draw score
-static void drawScore(void)
+static void drawScore(const OledStateMessage *state)
 {
     char scoreStr[16];
 
     OLED_SetCursor(&oledDevice, 0, 0);
-    snprintf(scoreStr, sizeof(scoreStr), "S:%d", score);
+    snprintf(scoreStr, sizeof(scoreStr), "S:%d", state->score);
     OLED_PutString(&oledDevice, scoreStr);
 }
 
 // Draw game state
-static void drawState(void)
+static void drawState(const OledStateMessage *state)
 {
     char stateStr[16];
 
-    if (gameState == GAME_PAUSED)
+    if (state->gameState == GAME_PAUSED)
     {
         OLED_SetCursor(&oledDevice, 8, 1);
         OLED_PutString(&oledDevice, "PAUSED");
     }
-    else if (gameState == GAME_GAMEOVER)
+    else if (state->gameState == GAME_GAMEOVER)
     {
         OLED_SetCursor(&oledDevice, 5, 1);
         OLED_PutString(&oledDevice, "GAME OVER");
         OLED_SetCursor(&oledDevice, 6, 2);
-        snprintf(stateStr, sizeof(stateStr), "Score:%d", score);
+        snprintf(stateStr, sizeof(stateStr), "Score:%d", state->score);
         OLED_PutString(&oledDevice, stateStr);
     }
     else
     {
         // Show difficulty and lives
         OLED_SetCursor(&oledDevice, 10, 0);
-        OLED_PutString(&oledDevice, difficulty ? "F" : "S");
+        OLED_PutString(&oledDevice, state->difficulty ? "F" : "S");
 
         // Lives as hearts or simple indicator
         OLED_SetCursor(&oledDevice, 12, 0);
-        snprintf(stateStr, sizeof(stateStr), "L:%d", lives);
+        snprintf(stateStr, sizeof(stateStr), "L:%d", state->lives);
         OLED_PutString(&oledDevice, stateStr);
     }
 }
