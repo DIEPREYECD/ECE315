@@ -98,6 +98,12 @@ typedef enum
     GAME_GAMEOVER
 } GameState;
 
+typedef struct
+{
+    GameState gameState;
+    int lives;
+} LedStateMessage;
+
 /******************************************************************************/
 /* Global Variables
 ******************************************************************************/
@@ -135,6 +141,9 @@ static volatile int resetGame = 0;
 static TaskHandle_t xGameTaskHandle = NULL;
 static TaskHandle_t xOledTaskHandle = NULL;
 
+// Queue carrying the latest LED snapshot from the game task.
+static QueueHandle_t xLedStateQueue = NULL;
+
 /******************************************************************************/
 /* Function Prototypes
 ******************************************************************************/
@@ -159,6 +168,7 @@ static void drawState(void);
 int main()
 {
     int status;
+    LedStateMessage ledState;
 
     xil_printf("Initializing Pong Game...\r\n");
 
@@ -199,6 +209,13 @@ int main()
 
     XGpio_SetDataDirection(&swInst, 2, 0x00); // Switch inputs
 
+    xLedStateQueue = xQueueCreate(1, sizeof(LedStateMessage));
+    if (xLedStateQueue == NULL)
+    {
+        xil_printf("LED state queue creation failed.\r\n");
+        return XST_FAILURE;
+    }
+
     xil_printf("Initialization Complete!\r\n");
     xil_printf("Controls: BTN0=Left, BTN1=Right, SW0=Difficulty, SW1/BTN2=Pause, BTN3=Reset\r\n");
 
@@ -233,6 +250,10 @@ int main()
 
     // Initialize game
     initGame();
+
+    ledState.gameState = gameState;
+    ledState.lives = lives;
+    xQueueOverwrite(xLedStateQueue, &ledState);
 
     // Start scheduler
     vTaskStartScheduler();
@@ -313,6 +334,7 @@ static void vGameTask(void *pvParameters)
 {
     TickType_t xDelay;
     int speed;
+    LedStateMessage ledState;
 
     while (1)
     {
@@ -363,6 +385,10 @@ static void vGameTask(void *pvParameters)
             updateBall();
         }
 
+        ledState.gameState = gameState;
+        ledState.lives = lives;
+        xQueueOverwrite(xLedStateQueue, &ledState);
+
         vTaskDelay(xDelay);
     }
 }
@@ -401,23 +427,30 @@ static void vLedTask(void *pvParameters)
     u32 greenLedValue;
     u32 rgbValue;
     const TickType_t xDelay = pdMS_TO_TICKS(100);
+    LedStateMessage ledState = {GAME_PLAYING, INITIAL_LIVES};
+    LedStateMessage dummyState;
 
     while (1)
     {
+        if (xQueueReceive(xLedStateQueue, &dummyState, 0) == pdTRUE)
+        {
+            ledState = dummyState;
+        }
+
         // Green LEDs show remaining lives on channel 1.
-        greenLedValue = lives & 0x07;
+        greenLedValue = ((u32)ledState.lives) & 0x07;
 
         // RGB LED shows game state on channel 2 using 3-bit color codes.
         rgbValue = RGB_OFF;
-        if (gameState == GAME_PLAYING)
+        if (ledState.gameState == GAME_PLAYING)
         {
             rgbValue = RGB_GREEN;
         }
-        else if (gameState == GAME_PAUSED)
+        else if (ledState.gameState == GAME_PAUSED)
         {
             rgbValue = RGB_BLUE;
         }
-        else if (gameState == GAME_GAMEOVER)
+        else if (ledState.gameState == GAME_GAMEOVER)
         {
             rgbValue = RGB_RED;
         }
@@ -607,7 +640,7 @@ static void drawState(void)
         OLED_PutString(&oledDevice, "PAUSED");
     }
     else if (gameState == GAME_GAMEOVER)
-`    {
+    {
         OLED_SetCursor(&oledDevice, 5, 1);
         OLED_PutString(&oledDevice, "GAME OVER");
         OLED_SetCursor(&oledDevice, 6, 2);
