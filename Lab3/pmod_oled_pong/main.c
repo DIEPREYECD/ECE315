@@ -115,6 +115,15 @@ typedef struct
     int ballY;
 } OledStateMessage;
 
+typedef struct
+{
+    int moveLeft;
+    int moveRight;
+    int difficulty;
+    int resetPressed;
+    u32 pauseToggleSequence;
+} InputStateMessage;
+
 /******************************************************************************/
 /* Global Variables
 ******************************************************************************/
@@ -131,7 +140,6 @@ XGpio swInst;
 static volatile GameState gameState = GAME_PLAYING;
 static volatile int score = 0;
 static volatile int lives = INITIAL_LIVES;
-static volatile int difficulty = 0; // 0 = slow, 1 = fast
 
 // Paddle position
 static volatile int paddleX = (OLED_WIDTH - PADDLE_WIDTH) / 2;
@@ -142,17 +150,12 @@ static volatile int ballY = OLED_HEIGHT / 2;
 static volatile int ballVelX = 1;
 static volatile int ballVelY = -1;
 
-// Input flags (set by input task, consumed by game task)
-static volatile int moveLeft = 0;
-static volatile int moveRight = 0;
-static volatile int pauseToggle = 0;
-static volatile int resetGame = 0;
-
 // Task handles
 static TaskHandle_t xGameTaskHandle = NULL;
 static TaskHandle_t xOledTaskHandle = NULL;
 
 // Queue carrying the latest LED snapshot from the game task.
+static QueueHandle_t xInputStateQueue = NULL;
 static QueueHandle_t xLedStateQueue = NULL;
 static QueueHandle_t xOledStateQueue = NULL;
 
@@ -180,6 +183,7 @@ static void drawState(const OledStateMessage *state);
 int main()
 {
     int status;
+    InputStateMessage inputState = {0, 0, 0, 0, 0};
     LedStateMessage ledState;
     OledStateMessage oledState;
 
@@ -220,7 +224,14 @@ int main()
         return XST_FAILURE;
     }
 
-    XGpio_SetDataDirection(&swInst, 2, 0x00); // Switch inputs
+    XGpio_SetDataDirection(&swInst, 2, 0xFF); // Switch inputs
+
+    xInputStateQueue = xQueueCreate(1, sizeof(InputStateMessage));
+    if (xInputStateQueue == NULL)
+    {
+        xil_printf("Input state queue creation failed.\r\n");
+        return XST_FAILURE;
+    }
 
     xLedStateQueue = xQueueCreate(1, sizeof(LedStateMessage));
     if (xLedStateQueue == NULL)
@@ -271,6 +282,8 @@ int main()
     // Initialize game
     initGame();
 
+    xQueueOverwrite(xInputStateQueue, &inputState);
+
     ledState.gameState = gameState;
     ledState.lives = lives;
     xQueueOverwrite(xLedStateQueue, &ledState);
@@ -278,7 +291,7 @@ int main()
     oledState.gameState = gameState;
     oledState.score = score;
     oledState.lives = lives;
-    oledState.difficulty = difficulty;
+    oledState.difficulty = inputState.difficulty;
     oledState.paddleX = paddleX;
     oledState.ballX = ballX;
     oledState.ballY = ballY;
@@ -301,6 +314,8 @@ static void vInputTask(void *pvParameters)
     u32 buttonVal;
     u32 swVal;
     const TickType_t xDelay = pdMS_TO_TICKS(20);
+    InputStateMessage inputState = {0, 0, 0, 0, 0};
+    int pausePrev = 0;
 
     while (1)
     {
@@ -313,44 +328,27 @@ static void vInputTask(void *pvParameters)
         // Bits 8-11: Switches SW0-SW3 (if available in hardware)
 
         // BTN0 (bit 0): Move paddle left
-        if (buttonVal & 0x01)
-        {
-            moveLeft = 1;
-        }
+        inputState.moveLeft = (buttonVal & 0x01) ? 1 : 0;
 
         // BTN1 (bit 1): Move paddle right
-        if (buttonVal & 0x02)
-        {
-            moveRight = 1;
-        }
+        inputState.moveRight = (buttonVal & 0x02) ? 1 : 0;
 
         // SW0: Difficulty toggle
-        if (swVal & 0x01)
-        {
-            difficulty = 1; // Fast
-            // xil_printf("Difficulty set to 1");
-        }
-        else
-        {
-            difficulty = 0; // Slow
-            // xil_printf("Difficulty set to 0");
-        }
+        inputState.difficulty = (swVal & 0x01) ? 1 : 0;
 
         // SW1 OR BTN2 (bit 2): Pause toggle
         // Use edge detection for pause (only toggle once per press)
-        static int pause_prev = 0;
         int pause_now = ((swVal & 0x02) || (buttonVal & 0x04)) ? 1 : 0;
-        if (pause_now && !pause_prev)
+        if (pause_now && !pausePrev)
         {
-            pauseToggle = 1;
+            inputState.pauseToggleSequence++;
         }
-        pause_prev = pause_now;
+        pausePrev = pause_now;
 
         // BTN3 (bit 3): Reset game (only when game over)
-        if (buttonVal & 0x08)
-        {
-            resetGame = 1;
-        }
+        inputState.resetPressed = (buttonVal & 0x08) ? 1 : 0;
+
+        xQueueOverwrite(xInputStateQueue, &inputState);
 
         vTaskDelay(xDelay);
     }
@@ -363,35 +361,46 @@ static void vGameTask(void *pvParameters)
 {
     TickType_t xDelay;
     int speed;
+    InputStateMessage inputState = {0, 0, 0, 0, 0};
+    InputStateMessage latestInput;
     LedStateMessage ledState;
     OledStateMessage oledState;
+    u32 lastPauseToggleSequence = 0;
 
     while (1)
     {
+        if (xQueueReceive(xInputStateQueue, &latestInput, 0) == pdTRUE)
+        {
+            inputState = latestInput;
+        }
+
         // Determine speed based on difficulty
-        speed = difficulty ? SPEED_FAST : SPEED_SLOW;
+        speed = inputState.difficulty ? SPEED_FAST : SPEED_SLOW;
         xDelay = pdMS_TO_TICKS(speed);
 
         // Handle pause toggle
-        if (pauseToggle)
+        if (inputState.pauseToggleSequence != lastPauseToggleSequence)
         {
-            pauseToggle = 0;
-            if (gameState == GAME_PLAYING)
+            if (((inputState.pauseToggleSequence - lastPauseToggleSequence) & 1U) != 0U)
             {
-                gameState = GAME_PAUSED;
-                xil_printf("Game Paused\r\n");
+                if (gameState == GAME_PLAYING)
+                {
+                    gameState = GAME_PAUSED;
+                    xil_printf("Game Paused\r\n");
+                }
+                else if (gameState == GAME_PAUSED)
+                {
+                    gameState = GAME_PLAYING;
+                    xil_printf("Game Resumed\r\n");
+                }
             }
-            else if (gameState == GAME_PAUSED)
-            {
-                gameState = GAME_PLAYING;
-                xil_printf("Game Resumed\r\n");
-            }
+
+            lastPauseToggleSequence = inputState.pauseToggleSequence;
         }
 
         // Handle reset (only when game over)
-        if (resetGame && gameState == GAME_GAMEOVER)
+        if (inputState.resetPressed && gameState == GAME_GAMEOVER)
         {
-            resetGame = 0;
             initGame();
             xil_printf("Game Reset\r\n");
         }
@@ -400,15 +409,13 @@ static void vGameTask(void *pvParameters)
         if (gameState == GAME_PLAYING)
         {
             // Update paddle position
-            if (moveLeft)
+            if (inputState.moveLeft)
             {
                 updatePaddle(-1);
-                moveLeft = 0;
             }
-            if (moveRight)
+            if (inputState.moveRight)
             {
                 updatePaddle(1);
-                moveRight = 0;
             }
 
             // Update ball
@@ -422,7 +429,7 @@ static void vGameTask(void *pvParameters)
         oledState.gameState = gameState;
         oledState.score = score;
         oledState.lives = lives;
-        oledState.difficulty = difficulty;
+        oledState.difficulty = inputState.difficulty;
         oledState.paddleX = paddleX;
         oledState.ballX = ballX;
         oledState.ballY = ballY;
