@@ -1,0 +1,549 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 4 : · Finish Microprocessor/controller architecture review · Operating Systems · PetaLinux · RTOS introduction · Assignment #1a and #1b
+1
+
+Last Lecture
+· Microprocessor/controller architecture review · Examples relevant to ECE 315
+2
+2
+
+This Lecture
+· Finish Microprocessor/controller architecture review · Operating Systems · PetaLinux · RTOS Introduction
+3
+3
+
+Learning Objectives
+· Understand the difference between a general operating system and one intended for embedded computing
+· Appreciate the difference between hard- and soft-real time operation and constraints
+· Identify and understand the main scheduling approaches
+4
+4
+
+Labs and Assignments
+· Labs start next week. Please attend your section. · Assignment #1 (parts a and b) out this week
+· Assignment #1a due on Jan 20th so that you have more background for the labs next week
+· Assignment #1b builds on lectures to date
+5
+5
+
+Assignment #1a ­ Part 1 FreeRTOS Introduction
+· Posted to Canvas · Start with Wokwi template · Extend the template to create three (3) tasks in a producer-consumer
+pattern
+· One producer (master) and two consumers (workers) · Workers have different capacities; one can take on more work than the other
+6
+6
+
+Assignment #1b ­ Elaborate Lecture material
+· Posted to Canvas
+7
+7
+
+RP2040 and Cortex-M0+
+· Other ARM families are Cortex-R and Cortex-M
+· Support real-time and low-power applications, respectively
+· We will consider the RP2040 since it is the processor on the Raspberry Pi Pico
+· The Pico is used in multiple MCTR courses · Very inexpensive yet powerful. RP2040 is $CA1.10 in Qty 1 · Pico W (WiFi and Bluetooth) is $CA10.32 in Qty 1
+· The ARM architecture it's based on is the Cortex-M0+
+8
+8
+
+Examples
+· We look to a few example that are readily available · STM32 - a family of 32-bit microcontroller and
+microprocessor integrated circuits by STMicroelectronics. · Pico (RP2040, RP2350) - a 32-bit dual-core ARM CortexM0+ microcontroller designed by Raspberry Pi Ltd.
+9
+9
+
+Basic Architecture
+· Advanced high-performance bus (AHB) matrix
+
+Kabir, Arafat & Peng, Yarui. (2021). Holistic Chiplet-Package Co-Optimization for Agile Custom 2.5D Design.
+
+10
+
+IEEE Transactions on Components, Packaging and Manufacturing Technology. PP. 1-1. 10.1109/TCPMT.2021.3069724.
+
+10
+
+Basic Architecture
+Hybrid architecture
+· Advanced high-performance bus (AHB) matrix
+
+Kabir, Arafat & Peng, Yarui. (2021). Holistic Chiplet-Package Co-Optimization for Agile Custom 2.5D Design.
+
+11
+
+IEEE Transactions on Components, Packaging and Manufacturing Technology. PP. 1-1. 10.1109/TCPMT.2021.3069724.
+
+11
+
+Basic Architecture
+
+· Read-only Memory (ROM)
+· Manufacturer-specific program and data to support the processor's operations, e.g,. specialized embedded devices like analogue-to-digital converters
+· GPIO ­ General Purpose Input/Output
+· Typically control logic levels (signal) on external pins
+· SRAM ­ Static Random Access Memory
+· low-power RAM with fast access
+· UART ­ Universal Asynchronous Receiver-Transmitter
+· Supports serial data communications (send bits on one wire, receive on another)
+· Timer ­ Can generate events based on programmed time intervals
+· Watchdog ­ Used to monitor the processor or peripherals to make sure they are alive
+
+Kabir, Arafat & Peng, Yarui. (2021). Holistic Chiplet-Package Co-Optimization for Agile Custom 2.5D Design.
+
+12
+
+IEEE Transactions on Components, Packaging and Manufacturing Technology. PP. 1-1. 10.1109/TCPMT.2021.3069724.
+
+12
+
+ARM Cortex-M Family
+
+Cortex-
+M0
+
+Description
+is the smallest Cortex-M processor, designed for entry-level microcontrollers.
+
+Examples by ST Micro and Nordic
+STMF0, rRF51
+
+M0+
+
+is a highly energy-efficient processor, specifically useful in wearables for healthcare STM32[C0,G0,L0,U0,WL,WB0,WB]
+
+and fitness.
+
+M3
+
+has more powerful instruction set, and hence, provides more computation power,
+
+STM32[F1, F2]
+
+specifically useful in smart-home devices.
+
+M4
+
+further includes digital signal processing (DSP) instructions and optional integration STM32[F3,F4,G4,H7,L4,L4+,WL,WB]
+
+of a single-precision floating point unit (FPU). These features make Cortex-M4 useful
+
+for mixed signal (analog and digital) and control systems.
+
+M7
+
+is a high-performance Cortex-M processor, which also supports cache and external STM32[F7,H7]
+
+memory. Cortex-M7 has the capabilities of a real-time processor, particularly useful
+
+for computationally intensive automation applications.
+
+M23, M33, and M35P
+
+include TrustZone security, which protects critical information within a system. Cortex-M35P has additional security features to protect confidential data from several forms of physical security attacks. This helps keeping personal information safe in gadgets like smartwatches and home security systems.
+
+STM32[H5,L5,U3,U5,WBA], nRF[91,5340,54, 54H20]
+
+M52, M55, processors each implement HeliumTM technology that supports vector instructions, STM32N6
+
+and M85 making them useful in signal processing and machine-learning applications such as
+
+audio processing, power electronics, voice command recognition and still
+
+or low frame-rate image processing.
+
+13
+
+13
+
+Operating Systems
+14
+14
+
+Why Operating Systems Now?
+I thought this course was about computer interfacing...
+15
+
+Why Operating Systems Now?
+I thought this course was about computer interfacing... · It is, but to do the work on assignments and in labs, we need
+some knowledge of how to write code to connect to and control interfaces and peripherals · We can do this with "bare metal" programming and via an operating system
+16
+
+What is an Operating System (OS)?
+
+An OS is software that manages system resources for one or more applications. It takes care of
+1. Process Management ­ Creates, schedules, and terminates processes (running programs)
+2. Memory Management ­ Allocates and tracks the use of system memory
+3. File System Management ­ Organizes and controls access to stored data
+4. Device Management ­ Coordinates input/output devices (e.g., keyboard, printer, network)
+5. Security and Access Control ­ Protects system resources from unauthorized use.
+
+Made with help from ChatGPT
+
+17
+
+17
+
+What is OS? Cont'd
+In the case of personal computers, tablets, smartphone, servers, and other similar systems, an OS · Mediates, or acts as an intermediary between users and the hardware, · Mediates between computer systems that are networked
+· In the case of an embedded system, there is usually no user, just other systems, and the OS's role is substantially different
+· We'll dig into that more later...
+
+Made with help from ChatGPT
+
+18
+
+18
+
+Layer Model of an OS
+· Starting at the lowest level, · Hardware can't be changed · Device drivers are small chunks of
+code that interact with specific devices, like memory controller, serial interfaces, etc.
+· File System and Network Protocols are close to the device drivers for efficiency and performance
+
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+19
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+19
+
+Layer Model of an OS
+· File System
+· Coordinates the storage and retrieval of data structures.
+· The name "file" is an abstraction, but useful
+· Network Protocols
+· Coordinate the transmission and reception of information from other computers and networks
+· Both comprise multiple functions organized in libraries
+
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+20
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+20
+
+Layer Model of an OS
+· Scheduler coordinates CPU access by higher layers to OS resources
+· It decides which program (aka Task) gets CPU time and when
+· Ideally ensures that all tasks get some time · Very complex problem on personal or
+server computer running many tasks concurrently · Somewhat simpler for embedded systems, but complicated by hard-real time requirements
+
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+21
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+21
+
+Layer Model of an OS
+· Resource manager monitors and manages the system's resources
+· May include the scheduler functions... · Decides which tasks get which resources,
+like memory, file space, and access to input/output devices.
+· Monitors resource usage
+· Protect against unauthorized access
+· Manages resource allocation and deallocation
+· E.g., if a task dies, makes sure resources are released
+
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+22
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+22
+
+Layer Model of an OS
+· The OS Interface provides User Programs access to common OS functions
+· CRUD file access
+· Create, Read, Update, Delete
+· Access to peripherals like keyboards, screens, printers, etc.
+· User programs are applications that are not native to the system, but are added by users
+
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+23
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+23
+
+Layer Model of an OS
+· The lower three layers can be combined into what is called the Kernel
+· Scheduler, Resource Manager, File System, Network Protocols, and common Device Drivers
+
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+24
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+24
+
+Linux OS Layer Model
+· We often wrongly think of Linux as comprising all these layers
+· It is really only the kernel
+
+https://commons.wikimedia.org/w/index.php?title=File:Layers_of_a_Linux_system.png&oldid=971403878
+
+25
+
+25
+
+Types of Operating Systems
+· Batch · Time-Sharing · Distributed · Embedded · Real-Time
+
+Made with help from ChatGPT
+
+26
+
+26
+
+Batch OS
+
+· Similar jobs are collected together and executed as a batch, one after another.
+· Users prepare their jobs (programs, input data, etc.) and submit them to the computer operator.
+· The OS then processes these jobs sequentially or according to a scheduling order, without manual intervention between them.
+· Users do not interact with programs while they run
+· Results are returned by the operator to the user when the job completes
+
+Made with help from ChatGPT
+
+27
+
+27
+
+Time-sharing OS
+
+· An OS that enables concurrent access to a single computer by dividing CPU time into small intervals called time slices.
+· Each active user or process gets a short share of CPU time in turn.
+· Users perceive sole use of the computer
+· User programs execute in a series of short time intervals, often called slices
+· Slices are short enough that users perceive fast responses
+· Humans are way slower than computers · A computer can get a lot done in 10 ms... can you?
+
+Made with help from ChatGPT
+
+28
+
+28
+
+Distributed OS
+
+· An OS that coordinates and controls multiple interconnected computers (nodes) in a network so they work together as one system.
+· Each computer runs its own local OS, but the distributed OS manages communication, resource sharing, and task distribution across all machines.
+· Users perceive the system as a single computer
+· Big advantage is that is scales; more computers can be added to add capability without a perceived different in operation
+
+Made with help from ChatGPT
+
+29
+
+29
+
+Embedded OS
+
+· An OS specifically optimized to manage hardware and software resources of an embedded computer system.
+· It runs on devices that perform specific tasks, often with limited memory, processing power, and energy.
+· Unlike general-purpose operating systems (like Windows or Linux desktops), an embedded OS is lightweight, efficient, and tailored for a particular application or device.
+· Can be hard- or soft-real time
+· Usually no user interface when deployed
+
+Made with help from ChatGPT
+
+30
+
+30
+
+Time-Sharing ­ PetaLinux
+· An embedded Linux Software Development Kit (SDK) developed by Xilinx for use with its System-on-a-Chip (SoC) devices, like the Zynq
+· Use it to create a customizable Linux-based operating system tailored to your needs
+· Can be very lightweight(!)
+· Key Features:
+· Integrated with Xilinx tools like Vivado and Vitis · Supports ARM and MicroBlaze architectures · Provides board support packages (BSPs) for quick setup · Includes tools for kernel, bootloader, and root filesystem configuration
+31
+Enables rapid prototyping and development of embedded applications
+31
+
+PetaLinux
+· At the core of the SDK is a reliance on the Yocto Project
+https://www.yoctoproject.org 32
+32
+
+PetaLinux SDK
+· Also supports running FreeRTOS, a real-time operating system · We use it in this course
+· In assignments · In labs
+· It is an open-source RTOS that is very portable and lightweight
+· Actively maintained and improved · Well suited to embedded applications
+· More on FreeRTOS in a moment...
+33
+33
+
+Real-Time OS
+· In general, an embedded operating system that can meet timing constraints
+· Runs multiple programs (aka processes) seemingly concurrently · It manages hardware resources and executes tasks within strict time
+constraints, ensuring that important operations occur at precise and predictable times
+
+Made with help from ChatGPT
+
+35
+
+35
+
+Real-Time OS cont'd
+· Deterministic response: Guarantees that tasks complete within a fixed time
+· Task prioritization: High-priority tasks preempt lower-priority ones · Minimal latency: Very short time between event occurrence and
+response · Multitasking support: Can run multiple tasks simultaneously with
+precise scheduling · Reliability and stability: Designed to run continuously without failure
+
+Made with help from ChatGPT
+
+36
+
+36
+
+Some Useful Concepts and Terms
+37
+37
+
+Processes and Threads
+· A program that is executing is a process · A process comprises smaller units called tasks or threads · Tasks and threads are managed via scheduling and synchronization
+
+Made with help from ChatGPT
+
+38
+
+38
+
+Processes and Threads cont'd
+
+Program memory (ROM)
+Program
+
+RAM Process 1 Process 2
+
+Process 1
+Task (Thread)
+CPU Task (Thread)
+
+Process == instance of Program Process == organization of
+Program in RAM
+
+Task/Thread == single path of execution
+Task/Thread is a scheduling entity
+
+https://www.rtos.be/2013/08/programs-processes-and-threads-part-2/
+
+39
+
+RAM is mapped onto the CPU in terms of what it accesses. Thread is a subset of instructions and dynamic storage
+
+39
+
+Scheduling Basics
+
+Common algorithms:
+· First Come, First Served (FCFS)
+· A non-preemptive scheduling algorithm where the CPU is assigned to processes in the order they arrive in the ready queue
+· A process runs to completion before another starts ­ sequential execution
+· Round Robin (RR)
+· Each process in the ready queue is given the CPU for a fixed amount of time (called a time quantum or time slice)
+· If a process does not finish within its time quantum, it is preempted (paused) and placed at the end of the ready queue, allowing the next process to run
+
+Made with help from ChatGPT
+
+40
+
+40
+
+First Come, First Serve Scheduler
+
+Scheduler
+P5 New job to be queued
+
+P4 P3 P2
+
+Free space in the queue
+
+Queued Jobs
+
+CPU P1
+41
+
+41
+
+Round-Robin Scheduler
+
+Scheduler
+P7
+Incoming job, waiting
+
+P1
+
+P7
+
+P2
+
+CPU
+
+P6
+
+P4
+
+Completed job
+P5
+42
+
+42
+
+Scheduling Basics cont'd
+
+· Priority Scheduling
+· OS assigns a priority number to each process, and the CPU executes processes based on their priority level rather than arrival time
+· A higher priority process is executed before a lower priority one. · If two processes have the same priority, they are usually scheduled using First
+Come First Served (FCFS) order. · This algorithm can be either preemptive or non-preemptive.
+· Multilevel Queues
+· Two or more task queues that have their own scheduling method are set up
+· A queue is selected using a meta-level scheduling approach and then allowed to manage its tasks
+
+Made with help from ChatGPT
+
+43
+
+43
+
+Priority Scheduler
+Highest priority
+
+Scheduler
+
+P6
+
+Priority?
+
+New job to be queued
+
+P1
+· · ·
+P5 P4 P2
+Lowest priority
+
+CPU P3
+44
+
+44
+
+Next Lecture
+· More on RTOS concepts via FreeRTOS · Patterns · FreeRTOS example showing two patterns · Assignment #1a and #1b
+45
+45
+
+Questions
+46
+46
+
+https://xkcd.com/2928/
+
+

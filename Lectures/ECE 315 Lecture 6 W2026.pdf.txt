@@ -1,0 +1,235 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 6 : · Embedded Software · Design Thoughts · Real-Time Specifications and Constraints
+1
+
+Last Lecture
+· More on RTOS concepts via FreeRTOS · Patterns · FreeRTOS example showing two patterns
+2
+2
+
+This Lecture
+· Embedded Software · Design Thoughts · Real-Time Specifications and Constraints
+· Examples, Lessons
+3
+3
+
+Learning Objectives
+· Describe the iterative software development process · Define a "walking skeleton" · Describe the steps past the walking skeleton stage · Understand events in an embedded context, and their sources · Define real-time specifications like response time, variability, latency,... · Describe why having processor idle time is a good idea · Explain why sometimes software implementation of a signal may be a
+problem
+4
+4
+
+Thoughts on Software Design and Development
+5
+5
+
+Quotes
+Frederick Brooks, author of The Mythical Man-Month The hard part of building software is the specification, design, and testing of this conceptual construct, not the labor of representing it and testing the fidelity of the representation.
+Douglas Crockford, developer of Javascript and more Computer programs are the most complex things that humans make.
+Grady Booch, author, pioneer of object-oriented design & programming The function of good software is to make the complex appear to be simple
+6
+6
+
+About Software Development
+
+· Software development is often both expensive and risky
+· Software is often impossible to specify completely at project start
+· Software requirements are typically incomplete and often change
+· Software systems can be arbitrarily complex
+· This complexity easily overwhelm the understanding and capabilities of teams of even expert software designers
+· Turnover rates are high in the software industry.
+· Expertise is lost as designers leave. New designers must be trained, and · they are (at first) more likely to introduce software errors.
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+7
+
+You are Computer Engineers and know that Software Engineering is a thing.
+After 40+ years, and learning from people who were early pioneers and very smart, I can say that software development is far from an understood thing
+Good software is hard, yet it looks so easy when done right
+
+7
+
+By Krupadeluxe - Own work, CC BY-SA 4.0, https://commons.wikimedia.org/w/index.php?curid=104924876
+
+Iterative and Incremental Development
+8
+Wikipedia contributors. "Iterative and incremental development." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 3 Sep. 2025. Web. 30 Oct. 2025.
+Can't expect to get something that is very complex right the first try. Iterative, incremental programming is in almost all cases a good idea.
+8
+
+Engineering Design - Starting Simply
+· Start with conceptual design, exploring the design space
+9
+9
+
+Starting Simply
+· Start with conceptual design, exploring the design space
+Artefacts (documents)
+
+Need
+Design Products
+Artefacts (documents)
+Detailing
+
+Conceptual Design for Engineers, 3rd ed, Michael French
+
+Analysis
+Statement of Problem
+Conceptual Design
+Selected Schemes
+Embodiment of Schemes
+10
+
+10
+
+Starting Simply ­ Walking Skeletons
+· Start with conceptual design, exploring the design space
+· Choose a promising design that should meet the requirements
+· Prove that it is viable
+· Define and test the minimum functionality needed to build the system
+-- "Walking Skeleton"
+11
+11
+
+Starting Simply
+· Prove that it is viable
+· Define and test the minimum functionality needed to build the system
+-- "Walking Skeleton"
+· High-level Design define & refine · Consider Costs, Risks, and
+Mitigation strategies
+12
+12
+
+Embedded Software ...
+We will go into the philosophy and practice of embedded development in this course It is a skill and getting experience is a good idea,
+...as a developer to appreciate the challenges ...as a manager to appreciate the effort and time needed ...as an architect to never underestimate the complexity
+13
+13
+
+Real-time Events
+
+· Can be either external or internal to embedded system
+· External event examples:
+· A signal has been received from outside the system, such as a user input or a communication message (e.g., Internet of Things message)
+· A sensor has detected a change in the environment. · An actuator has completed a commanded action · An alarm condition (e.g., power failure) has occurred
+· Internal event examples:
+· A timer-triggered interrupt has occurred · A direct memory access data transfer has finished · A software-triggered exception has occurred
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+14
+
+14
+
+Real-time Specifications or Requirements
+· Typical kinds of real-time specifications:
+· Maximum and/or minimum response time to different events · Maximum variability/jitter in the response time · Accuracy of the repetition frequency: e.g., sampling an analog sensor signal · Maximum variability/jitter in repetition frequency · Degradation behaviour when the workload exceeds system capacity
+· e.g., can less important activities be safely deferred (possibly by skipping over code or disabling interrupts) so that important events will be handled?
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+15
+
+15
+
+RFID Example
+· RFID tags absorb energy from a transmission by a reader device
+· The tag uses the energy to modulate the signal that is reflected by the antenna
+· The reader demodulates the received reflection and gets the data contained
+· How does the reader know which tag it is reading from and how does it differentiate it from all the others that might be around?
+16
+16
+
+RFID Example
+
+ST25RU3993
+SPI interrupt
+
+17
+UML is a good thing, good for communicating ideas, processes, algorithms. Here we use an interaction diagram to understand the handshaking involved in RFID tag reading
+
+17
+
+RFID Example
+
+ST25RU3993
+SPI interrupt
+
+Time Critical!
+
+Must respond within 30 µs or the tag "forgets"
+Is that a good thing?
+18
+
+18
+
+nRF52840 SoC
+· This SoC contains
+· ARM Cortex-M4 processor · Tons of peripheral devices like SPI,
+UARTE, Crypto engine, real-time clock, random number generator, NFC, etc.
+· Exceptionally low power · Exceptionally easy to program · Very inexpensive, < $CA7 in qty
+19
+19
+
+Idle time
+· CPU execution time when no work or urgent work needs to be performed · It provides timing flexibility, e.g.,
+· Interrupt service routines can more easily run without disrupting other tasks · Lowest priority jobs get a chance · Latency of event response is improved
+· It can be used to perform lower-priority, non-real-time work such as:
+· File system maintenance · Dynamic memory defragmentation; data blocks in memory are moved to
+consolidate regions of unused memory.
+· When idle time is used for low-priority work it is sometimes called background time.
+20
+20
+
+Idle Time cont'd
+Sufficient idle time must be present in real-time systems: · For externally initiated events, idle time provides the necessary excess
+CPU capacity so that even worst-case bursts of event-handling workload can be handled within the maximum response time and determinism (i.e., maximum response time variability) specifications.
+· E.g., most of the time an interrupt service routine needs N µs, but sometimes it needs >> N µs ­ we must plan for and program for worst case situations
+21
+21
+
+Idle Time cont'd
+Sufficient idle time must be present in real-time systems: · For internally initiated events, idle time provides flexibility so that the
+effects of internal sources of timing variability (e.g., variability in the execution time of compiled software, variability caused by cache memory and virtual memory misses, variability caused by Direct Memory Access transfers) can be absorbed and effectively hidden · Note that the timing for internally initiated events should be determined by H/W timers, not by software-dependent execution delays.
+22
+22
+
+A Hard Lesson using Software Timing
+· The Serial Peripheral Interface (SPI) is a protocol we will see later
+· PICO == MOSI (master out, slave in) · POCI == MISO (master in, slave out)
+nRF52840
+23
+https://learn.sparkfun.com/tutorials/serial-peripheral-interface-spi/all
+23
+
+A Hard Lesson using Software Timing
+· Can implement using software and general purpose I/O (GPIO) pins
+· Toggle GPIOs high and low to emulate the timing diagram
+· The clock must be regular and at the right frequency
+· Processor clock must be fast enough to support this
+· SPI clock speeds can be as high as 60 Mbps, but for embedded usually up to 12 Mbps
+24
+https://learn.sparkfun.com/tutorials/serial-peripheral-interface-spi/all
+24
+
+A Hard Lesson using Software Timing
+· Timing constraints like tWH and tWL for the SCK signal must be adhered to
+· Data on SI and SO is "clocked" on the rising edge of SCK
+· There is a set up time, tSU, and a hold time, tH that are minimum times
+· A recent student-built space physics instrument failed when a processor connected to an analogue-to-digital converter (ADC) could not keep up using a software SPI implementation
+Had to replace the processor(!)
+25
+Microchip - TA101 CryptoAutomotiveTM Summary Data Sheet
+25
+
+Next Lecture
+· Bare Metal Programming · More on RTOS scheduling
+26
+26
+
+Questions 27 27
+
+https://xkcd.com/730/
+
+

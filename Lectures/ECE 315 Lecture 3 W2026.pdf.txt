@@ -1,0 +1,384 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 3 : · Microprocessor/controller architecture
+review · Examples relevant to ECE 315
+1
+
+Last Lecture
+· Embedded Systems overview
+· Importance of embedded systems · Examples
+· Challenges
+· SWaP · Constrained "everything"
+2
+2
+
+This Lecture
+· Microprocessor/controller architecture review · Examples relevant to ECE 315
+3
+3
+
+This Lecture
+· Starting on microprocessors, microcontrollers · Basic architectures · ARM; Zynq-7000, Pico
+4
+4
+
+Learning Objectives
+· Identify Harvard, von Neumann, and hybrid architectures · Know the difference between a microprocessor and a microcontroller · Understand memory architectures and different types and their
+purpose · Understand registers and memory-mapped registers · Understand how a program is run at the opcode level
+· We will not do assembly programming, but we will think at this level
+· Know about and how to work with peripherals that are part of a system-on-a-chip (SoC) and that are external to a micro-processor or -controller
+5
+5
+
+Giant State Machines
+From ECE 212 or MCTR 210, we know that microprocessors, microcontrollers and computers are giant state machines Let's start with a high-level view of what a micro-computer looks like...
+6
+6
+
+Abstract computer
+7 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+7
+
+315 Model
+This is closer to the model we will consider for computer interfacing, with a focus on embedded devices
+8
+8
+
+Definitions
+· A computer is a highly complex synchronous finite state machine. · Bus = a logical grouping of wires that carry related signals; e.g., an 8-
+bit data bus has a width of 8 bits, and thus moves 1 byte at a time.
+· Data bus -- moves information between system components, usually one word wide · Address bus -- for CPU to indicate which memory or I/O location is being accessed
+· Control signals -- allow CPU to communicate system state to other components; e.g., reading vs. writing data
+· Clocks -- One or more frequency-stable square-wave clock signals are required to synchronise and initiate events.
+9 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+9
+
+Information in a Computer
+· Binary digits can be used to represent individual values or characters · Groups of them can represent numbers (floating point, signed or
+unsigned integers, complex numbers, etc.) or character strings (words, sentences) · More complex combinations can represent abstract entities, like documents, spreadsheets, database entries, etc, · Information is stored in memory or transmitted via buses or I/O channels.
+10
+10
+
+Representing State and Instructions
+· The computer, and in particular the CPU and specific logic circuits, maintains state
+· Inputs to the state machine are considered to be "instructions" that together comprise a computer "program"
+· You are well-aware of Python and now C programs and programming · Languages like them are a high-level abstraction of the state machine inputs
+that cause changes in state · A change in state or a series of changes results in some desired action, such
+as saving data to memory (RAM) or a signal sent to an I/O device
+11
+11
+
+Representing State and Instructions
+· Who defines the inputs and outputs related to state, the instructions · We, the designers and programmers do · For example, an instruction to the CPU to write (move) a word to a
+register might be defined as MV = 0b1001101100011010
+where 0b indicates this is a binary, base-2 word
+12
+Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+This is a made-up instruction
+12
+
+Programming Languages
+· High-level programming languages like C, Python, Java are used to provide a high-level abstraction for the low-level machine instructions
+· Assembly language is the lowest-level abstraction for machine instructions
+· Provides a one-to-one mapping
+· A compiler and linker translate one or more program files into lowlevel machine instructions and link them with others that are preexisting and a part of libraries
+· The resulting programs are stored in program memory
+· Often this is non-volatile storage like FLASH
+13
+13
+
+TIOBE Index for October 2025 https://www.tiobe.com/tiobe-index/
+What are the top programming languages
+14
+
+Top Embedded Programming Languages
+
+This can be very subjective, and people will be passionate, so beware...
+
+geeksforgeeks.org ChatGPT.com
+
+C
+
+C
+
+C++
+
+C++
+
+Java*
+
+Rust
+
+Python
+
+Python
+
+Rust
+
+Java*
+
+Ada
+
+Ada
+
+Lua
+
+Lua
+
+B#
+
+Embedded C++
+
+Verilog
+
+Assembly
+
+Embedded C++
+
+Other domain specific
+
+Google Search AI C C++ Python Java* Rust Assembly Ada MicroPython Go Javascript
+
+* Embedded Java
+
+Claude.ai C C++ Assembly Python Rust Ada Java* Lua Javascript Verilog/VHDL
+15
+
+15
+
+Specifying Numerical Values in Source Code
+· We will focus on the C language as it is less abstracted from the true "machine" code that defines the instructions the computer interprets
+· When we want to specify numerical values, we use one of several bases ­ decimal, binary, octal, or hexadecimal Example: To specify the numeric value ten, we can write this as: · 10-- decimal by default · 0x0A -- the 0x prefix denotes a hexadecimal value follows · 0b1010 -- the 0b prefix denotes a binary value follows · 012 -- a leading zero on an integer denotes octal
+16 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+16
+
+Characters ­ ASCII
+· We will use only ASCII for this course
+· 128 symbols are represented
+· Unicode is an extension of ASCII
+· As of version 16, there are 292,531 assigned characters
+
+https://www.sciencebuddies.org/cdn/references/ascii-table.png
+
+17
+
+17
+
+Useful Computer Abstraction
+· The outer layers are high-level, closer to the user
+· The inner layers are low-level, closer to the circuitry
+· We can't alter the hardware (HW), which is made of electronic circuits, gates, flip-flops, etc.
+· We can't access the Microprogram level (manufacturer uses that)
+
+Mi
+
+Application High-Level Language Operating System AssMemacbhlyinLeaLnegvueal ge
+croprogr
+HW
+
+am
+
+18 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+18
+
+Useful Computer Abstraction
+· We can program down to the "Machine Level" aka machine code level
+· There we write binary-encoded instructions that tell the CPU what operation to execute
+· The machine code is executed as a series of micro-instructions in the Microprogram level
+
+Mi
+
+Application High-Level Language Operating System AssMemacbhlyinLeaLnegvueal ge
+croprogr
+HW
+
+am
+
+19 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+19
+
+Classic Computer Architectures
+· Historically there are two kinds of computer architecture
+Von Neumann Harvard
+20
+20
+
+von Neumann
+· John von Neumann was a Hungarian and American mathematician, physicist, computer scientist and engineer.
+· Super smart, made major contributions to multiple fields
+· Developed the computer architecture named after him
+
+By LANL - http://www.lanl.gov/history/atomicbomb/images/NeumannL.GIF
+
+21
+
+(archive copy at the Wayback Machine), Attribution, https://commons.wikimedia.org/w/index.php?curid=3429594
+
+21
+
+The Maniac - book
+· In case you are interested, there is recent book that is a fictional account of John von Neumann by Benjiman Labatut
+· This and his previous book, When We Cease To Understand The World, are crazy good reads
+· Not entirely fictional, more of a biography with fictionalized parts...
+22
+22
+
+von Neumann Architecture
+· Single-bus model
+· Defined as a logical grouping of signal-bearing media (wires usually) · Here we group the address, data, and control lines as a single bus
+· Only one memory that stores program and data
+
+We've already seen this.
+
+23 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+23
+
+von Neumann Architecture
+
+Pros
+· Simple
+· Programs can be treated as data
+· Simple programming language model and tools (compiler, etc.)
+· Cost-effective
+
+Cons
+· Single bus is a bottleneck, limits performance · Programs and data in same memory is a security risk · Sequential access to program and data; slow
+
+We've already seen this.
+
+24 Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+24
+
+Harvard Architecture
+
+Program Memory
+
+Address lines Data lines
+
+CPU
+
+Address lines Data lines
+
+Data Memory
+
+· Has separate paths (busses) to program and data storage
+· Potentially allows for faster access and execution
+· Instructions and data can be fetched in parallel
+
+I/O Devices
+
+25
+
+25
+
+Harvard Architecture
+
+Program Memory
+
+Address lines Data lines
+
+CPU
+
+Address lines Data lines
+
+Data Memory
+
+· Can be challenging to make work
+
+· Is physically more complex ­ two memories, two busses
+
+I/O Devices
+
+· May still need to share some things
+
+· More expensive
+
+· Modern microprocessors are not pure von Neumann or Harvard, but a mix of the two
+
+26
+
+26
+
+Advanced RISC Machines ­ ARM
+· A very popular, common computer architecture was developed by companies that eventually became ARM starting in the early 80s
+· It's no perfectly correct to say "computer architecture" because ARM licenses a family of Reduced Instruction Set Computer (RISC) instruction set architectures
+· ARM specifies the instructions and companies build hardware to execute them
+· Over 200 billion ARM-based computers sold so far (at least!)
+27
+27
+
+Zybo Z-7010
+· Main system used for labs and example in ECE 315 · Single-board computer based on Xilinx Zynq Z-7000 SoC
+28
+28
+
+Zybo Features
+ZYNQ Processor · 667MHz dual-core Cortex-A9 processor · DDR3L memory controller with 8 DMA channels and 4 High Performance AXI3 Slave ports · High-bandwidth peripheral controllers: 1G Ethernet, USB 2.0, SDIO · Low-bandwidth peripheral controller: SPI, UART, CAN, I2C · Programmable logic equivalent to Artix-7 FPGA Memory · 1 GB DDR3L with 32-bit bus @ 533 MHz (1066 MHz) · 16 MB Quad-SPI Flash with factory programmed 128-bit random
+number and 48-bit globally unique EUI-48/64TM compatible identifier · microSD slot
+See https://digilent.com/ 29
+29
+
+Zybo Features
+Power · Powered from USB or any 5V external power source USB and Ethernet · Gigabit Ethernet PHY · USB-JTAG Programming circuitry · USB-UART bridge · USB 2.0 OTG PHY with embedded Host* and Device capabilities Audio and Video · HDMI sink port (input) with CEC (Zybo Z7-20) and without CEC (Zybo Z7-10) · HDMI source port (output) with CEC (Consumer Electronics Control) · Audio codec with stereo headphone, stereo line-in, and microphone jacks
+See https://digilent.com/ 30
+30
+
+Zybo Features
+Switches, Push-buttons, and LEDs · 6 push-buttons · 4 slide switches · 5 LEDs · 2 RGB LEDs · Expansion Connectors · 6 Pmod ports on the Zybo Z7-20 (5 on the Zybo Z7-10)
+
+See https://digilent.com/ 31
+
+31
+
+Xilinx Zynq-7000 System-on-a-chip (SoC)
+· One or two A9 ARM processors
+· Rich set of I/O peripherals · Multiple memory interfaces · Multiple communication
+interfaces · FPGA fabric
+
+https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+32
+
+32
+
+Cortex-A9
+
+· One of the ARM Cortex-A family of processors
+· Supports a Memory Management Unit (MMU), which is needed for modern operating systems
+
+64-bit Year Core
+2016 Cortex-A34 2018 Cortex-A65 2021 Cortex-A510 2022 Cortex-A715
+Cortex-A520 2023
+Cortex-A720 2024 Cortex-A725
+Cortex-A320 2025 Cortex-A530
+Cortex-A730
+
+Wikipedia contributors. "ARM Cortex-A." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 21 Jul. 2025. Web. 19 Oct. 2025.
+
+32/64-bit Year Core
+Cortex-A53 2012
+Cortex-A57 Cortex-A35 2015 Cortex-A72 2016 Cortex-A73 Cortex-A55 2017 Cortex-A75 2018 Cortex-A76 2019 Cortex-A77 2020 Cortext-A78 2021 Cortex-A710 2022 Cortex-A510 (refresh)
+
+32-bit Year Core
+2005 Cortex-A8 2007 Cortex-A9 2009 Cortex-A5 2010 Cortex-A15 2011 Cortex-A7 2013 Cortex-A12 2014 Cortex-A17 2016 Cortex-A32
+33
+
+33
+
+Next Lecture
+· Finish Microprocessor/controller architecture review · Operating Systems · PetaLinux · RTOS Introduction
+34
+34
+
+Questions
+
+https://xkcd.com/722/ 35
+
+35
+
+

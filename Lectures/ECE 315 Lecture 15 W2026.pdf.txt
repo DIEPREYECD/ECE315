@@ -1,0 +1,411 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 15: · Serial Peripheral Interface ­ SPI
+1
+
+Last Lecture
+· Ethernet LAN · CAN · USB
+2
+2
+
+This Lecture
+· Serial Peripheral Interface ­ SPI
+3
+3
+
+Learning Objectives
+· Describe the purpose and operation of the Serial Peripheral Interface (SPI) as a synchronous serial communication protocol.
+· Explain the SPI controller­peripheral (main­subnode) architecture. · Identify and label the SPI signal lines (CS/nCS, SCLK, MOSI/SDI, MISO/SDO) and
+describe their functions. · Differentiate between 3-wire and 4-wire SPI configurations and explain when
+each is appropriate. · Illustrate how multiple peripherals are connected using separate chip-select lines
+or a daisy-chain topology. · Describe data transfer in SPI using shift registers and explain how data moves
+between controller and peripheral.
+4
+4
+
+Learning Objectives
+· Discuss how SPI clock polarity (CPOL) and clock phase (CPHA) affect data sampling and transmission.
+· Identify and explain the four SPI modes (0­3) and their timing relationships. · Recognize alternative terminology (e.g., controller/peripheral vs. master/slave)
+and the reasons for inclusive naming. · Analyze SPI timing diagrams to determine correct data flow and signal
+synchronization.
+5
+5
+
+Serial Peripheral Interface (SPI)
+· Is an ad hoc, de facto standard synchronous serial communication protocol
+· First proposed by Motorola in the late 1980s · SPI became, and is, a popular low-cost interface used by embedded
+systems to communicate with each other and with peripherals · SPI has a simple controller-peripheral architecture in which the SPI
+Controller and SPI Peripheral(s) communicate over only four wires
+· There are variants that will be discussed as needed
+
+Wikipedia contributors. "Serial Peripheral Interface." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 10 Nov. 2025. Web. 13 Nov. 2025.
+
+Made with help from ChatGPT
+
+6
+
+6
+
+Nomenclature
+7
+7
+
+Old vs New Protocol Descriptions
+
+· SPI originally was described in terms of a "Master-Slave" architecture
+· The "Master" controlled the interface, chose when it was active · The "Slave" responded to the Master's initiations · The Slave could request interaction, but was not guaranteed to get it
+Problematic historical associations
+· The phrase directly references slavery, oppression, and subjugation
+· Many professionals and organizations consider it unnecessarily evocative of traumatic history, especially when neutral technical terms are available
+
+Made with help from ChatGPT
+
+8
+
+8
+
+Alternatives
+
+· The terms are often historically inherited but not essential
+· More precise alternatives exist; for example,
+· primary/replica, · leader/follower, · controller/worker, controller/peripheral, central/peripheral, · manager/agent, etc.
+· Replacement terms often describe the relationship more accurately and reduce ambiguity
+· We'll use Main and Subnode or Controller and Peripheral
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html Made with help from ChatGPT
+
+9
+
+9
+
+Controller ­ Peripheral
+10
+10
+
+SPI ­ 3- or 4-Wire Interface
+
+· Typically, SPI employs 4 wires, but for point-to-point connections 3 wires can be used
+
+SPI Main
+
+CS SCLK MOSI MISO
+
+SPI CS Subnode SCLK SDI SDO
+
+Signal CS or nCS SCLK MOSI, SDI
+MISO, SDO
+
+Description Chip Select, active low
+Clock Main Out/Subnode In; Subnode Data In
+Main In/Subnode Out; Subnode Data Out
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+11
+
+11
+
+SPI ­ 3- or 4-Wire Interface
+
+· Typically, SPI employs 4 wires, but for point-to-point connections 3 wires can be used.
+· If only the pair, Main and Subnode, don't need chip select
+
+SPI Main
+
+CS SCLK MOSI MISO
+
+SPI CS Subnode SCLK SDI SDO
+
+SPI Main
+
+SCLK MOSI MISO
+
+SPI Subnode SCLK
+SDI
+SDO
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+12
+
+12
+
+SPI ­ Main and Multi-Subnodes
+
+· With more than one Subnode, need more than one chip select
+
+SPI Main
+
+nCS1 nCS2 nCS3 SCLK MOSI MISO
+
+· · ·
+
+· · ·
+
+· · ·
+
+nCS SCLK SDI SDO
+nCS SCLK SDI SDO
+nCS SCLK SDI SDO
+
+Subnode 3
+
+Subnode 2
+
+Subnode 1
+
+13
+
+13
+
+SPI ­ Main or Subnode Roles
+
+· Microcontrollers will have internal SPI peripherals that can act as either Main or Subnode
+· RP2040 has two SPI controllers that can take either role
+
+SPI Main
+
+CS SCLK MOSI MISO
+
+SPI CS Subnode SCLK MISO MOSI
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+14
+
+14
+
+SPI ­ Main or Subnode Roles
+
+· An increasingly common variant in data line naming is
+· SDO ­ Serial Data Out · SDI ­ Serial Data In
+· When in doubt, read the datasheet!
+
+SPI Main
+
+CS SCLK MOSI MISO
+
+SPI CS Subnode SCLK SDI SDO
+
+SPI Controller CS
+SCLK SDO SDI
+
+SPI CS Peripheral SCLK SDI SDO
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+15
+
+15
+
+RTM 16 16
+
+https://xkcd.com/293/
+
+SPI Data Transfer ­ Logical Shift Register
+
+· Data is transferred by the Controller shifting data out on SDO
+· Data from the Peripheral is shifted into the Controller, which will ignore it if it is only writing to the Peripheral
+· Controller sends 8 bits to receive 8 bits from Peripheral · The SDO signal is always driven by the controller · SDI is driven only when peripheral is selected; otherwise, SDI is tri-stated
+
+LSB MSB LSB MSB
+
+Controller 01234567
+
+SCLK SDO
+nCS SDI
+
+Peripheral 01234567
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+17
+
+17
+
+SPI ­ Separately selected Subnodes
+
+· With more than one Subnode, need more than one chip select
+
+SPI Main
+
+nCS1 nCS2 nCS3 SCLK MOSI MISO
+
+· · ·
+
+· · ·
+
+· · ·
+
+nCS SCLK SDI SDO
+nCS SCLK SDI SDO
+nCS SCLK SDI SDO
+
+Subnode 3
+
+Subnode 2
+
+Subnode 1
+
+18
+
+18
+
+SPI ­ Daisy Chain Topology
+
+· The peripherals effectively become one large peripheral with a shared chip select signal
+· One shift register is the concatenation of all peripheral shift registers
+· An example might be N 8-bit digital-to-analogue converters that set temperatures
+· It's okay that briefly they are set to incorrect values
+· Saves on CS lines and simplifies programming model
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+19
+
+To be honest, I have not seen this much in practice, but that may just be me. Another example might be a set of ADCs
+
+19
+
+Daisy Chain Topology - Data Propagation
+
+· Data is propagated from one subnode to the next
+· The number of clock cycles required to transmit data is proportional to the subnode position in the daisy chain.
+· In an 8-bit system, 24 clock pulses are required for the data to be available on the 3rd subnode, compared to only eight clock pulses in regular SPI mode.
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+20
+
+20
+
+SPI Signaling ­ Non-Standard L
+
+· Not an actual standard; chip makers can implement in one of four ways
+· Controller can select the clock polarity (CPOL) and clock phase (CPHA).
+· CPOL bit sets the polarity of the clock signal during the idle state
+· Idle state is defined as the period when CS is high and transitioning to low at the start of the transmission and when CS is low and transitioning to high at the end of the transmission
+· CPOL = 0 (1) SCK starts off at the low (high) voltage
+· CPHA bit selects the clock phase
+· CPHA = 0 (1) sample data on the first (second) SCK edge
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+21
+
+21
+
+SPI ­ Clock Polarity and Clock Phase
+
+SPI Mode CPOL CPHA Clock Polarity in Idle State
+
+Clock Phase Used to Sample and/or Shift the Data
+
+0
+
+0
+
+0
+
+Logic low
+
+Data sampled on rising edge and shifted out on the falling edge
+
+1
+
+0
+
+1
+
+Logic low
+
+Data sampled on the falling edge and shifted out on the rising edge
+
+2
+
+1
+
+0
+
+Logic high
+
+Data sampled on the falling edge and shifted out on the rising edge
+
+3
+
+1
+
+1
+
+Logic high
+
+Data sampled on the rising edge and shifted out on the falling edge
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+22
+
+22
+
+SPI Mode 0, CPOL = 0, CPHA = 0
+
+CLK idle state = low, data sampled on rising edge and shifted on falling edge
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+23
+
+23
+
+SPI Mode 1, CPOL = 0, CPHA = 1
+
+CLK idle state = low, data sampled on the falling edge and shifted on the rising edge
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+24
+
+24
+
+SPI Mode 2, CPOL = 1, CPHA = 0
+
+CLK idle state = high, data sampled on the falling edge and shifted on the rising edge
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+25
+
+25
+
+SPI Mode 3, CPOL = 1, CPHA = 1
+
+CLK idle state = high, data sampled on the rising edge and shifted on the falling edge
+
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
+26
+
+26
+
+Zynq-7000 Two SPI Interfaces
+27
+Xilinx, Zynq 7000 SoC Technical Reference Manual, UG585 v1.14, June 30, 2023
+The CPU is linked to the SPI peripherals via the L2 Cache and Controller that is in turn connected to the Central Interconnect
+27
+
+Zynq-7000 SPI Logical Architecture
+28
+Xilinx, Zynq 7000 SoC Technical Reference Manual, UG585 v1.14, June 30, 2023
+28
+
+Next Lecture
+· SPI and FreeRTOS · RP2040 example
+29
+29
+
+SPI vs SPI?
+30
+30
+
+https://www.peterkuper.com/spy-vs-spy-2
+
+
