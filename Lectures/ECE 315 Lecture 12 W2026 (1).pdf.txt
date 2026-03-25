@@ -1,0 +1,566 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 12 : · Serial Interfacing · UART · RS-232C, RS-422, RS-485
+1
+
+Last Lecture
+· Computer Interfacing · Overview of some interfaces · Duplex · The nature of analogue and digital signals
+2
+2
+
+This Lecture
+· Serial Interfacing · UART · RS-232C, RS-422, RS-485
+3
+3
+
+Learning Objectives
+· Explain the difference between synchronous and asynchronous serial communication methods
+· Understand common crystal (and by extension, other) clock parameters and how they affect serial communication
+· Explain the difference between precision and accuracy · Know how to find the absolute frequency of a clock based on
+parameters expressed in parts per million (ppm)
+4
+4
+
+Synchronous Interfaces
+
+· Common clock; transmitter and receiver use the same clock
+
+Data
+
+Tx
+
+Rx
+
+Clock
+
+· Transmitter clock signal; data and clock sent to receiver
+
+Data
+
+Tx
+
+Rx
+
+Tx Clock
+
+Clock
+
+· Derived clock signal; transmitter encodes clock in data signal
+
+Data + Tx Clock
+
+Tx
+
+Rx
+
+Clock
+
+Tx Clock est.
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+Timing Recovery
+
+5
+
+5
+
+Synchronous Interfaces
+
+· Common clock; transmitter and receiver use the same clock
+
+Data
+
+Tx
+
+Rx
+
+Clock
+
+· Transmitter clock signal; data and clock sent to receiver
+
+Data
+
+Tx
+
+Rx
+
+Tx Clock
+
+Clock
+
+· Derived clock signal; transmitter encodes clock in data signal
+
+Clock
+
+Data + Tx Clock
+
+Tx
+
+Rx
+
+Common ­ WiFi, Bluetooth, USB 2/3.x/4 SATA/eSATA, Ethernet
+
+Tx Clock est.
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+Timing Recovery
+
+6
+
+6
+
+Clocks; Offsets, Drifts, Aging...
+· Many electronics devices make use of crystal resonators
+· Inexpensive, robust, well-understood
+· Designated as "XO"
+· TCXO ­ Temperature-Compensated XO; simple, inexpensive, good accuracy · OCXO ­ Oven-Controlled XO; complex, quite expensive, very accurate · VCXO ­ Voltage-Controlled XO; complex, expensive, accuracy depends on
+external systems
+· Offsets (tolerance), drifts, and aging are measured in parts-per-million (ppm) or even parts-per-billion (ppb)
+7
+7
+
+Clocks; Offsets, Drifts...
+· A clock with nominal frequency fnom and tolerance of N ppm will operate in the range [fnom - fnom * N/1e6, fnom + fnom * N/1e6]
+· E.g., a 16 MHz clock with stability of 5 ppm will be between [15.99992, 16.00008] MHz
+· A similar calculation tells us how the frequency varies across the XO's temperature range
+· Usually the aging statistic is for 1 year. That means that the frequency will be fnom ± N ppm per year.
+· The most aging happens over the first year, even the first months of operation
+8
+8
+
+Specifying "bad" clocks
+· Why would a standard specify a "bad" (poor) clock, one with a large ppm?
+· Because they are very inexpensive
+· 802.11, the basis of WiFi, specifies a receiver clock should be at least (no better than) 20 ppm
+· It relies on clock recovery by the receiver, which is just software and the algorithms are well-known
+· This helps keep the physical costs of WiFi down, promoting the standard
+9
+9
+
+Aside ­ Precision vs Accuracy
+10
+10
+
+Accuracy and Precision
+Accuracy · How close a given set of
+measurements is to the true value · A measure of fidelity Precision · How close the measurements are to each other · A measure of repeatability
+Wikipedia contributors. "Accuracy and precision." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 3 Nov. 2025. Web. 11 Nov. 2025.
+11
+11
+
+12
+12
+
+Accurate ­ mean is correct Poor precision ­ large std dev
+13
+13
+
+Not accurate ­ mean is incorrect Good precision ­ small std dev
+
+Accurate ­ mean is correct Poor precision ­ large std dev
+14
+
+14
+
+Not accurate ­ mean is incorrect Good precision ­ small std dev
+
+Accurate ­ mean is correct Poor precision ­ large std dev
+Not accurate ­ mean is incorrect Poor precision ­ large std dev
+15
+
+15
+
+Aside Over...
+16
+16
+
+Asynchronous Interfaces
+· The transmitter and receiver sides use physically distinct and unrelated clock signals. fRX = fnom ± N ppm  fTX = fnom ± M ppm
+· A simple (naiive) clock recovery scheme is to have the receiver clock frequency be M times the transmitter frequency.
+· E.g. fRX = 16 fTX ; At the receiver the clock is divided by 16 and 1 of 16 possible phases can be selected to best match fTX
+· Thus, the original transmitter clock can be approximated by the divideddown receiver clock.
+· However, over time (not much) the estimated clock signal will drift away due to fRX  fTX
+17
+17
+
+Semi-synchronous Interfaces
+
+· Some aspects of data transfer are synchronized by a clock signal, others are not.
+Key Characteristics
+· Clock present but not continuous: A clock signal (or timing reference) is provided, but not for every bit. Instead, it may mark frames, characters, or intervals.
+· Data timing partly self-timed: The receiver uses the provided timing cues plus its own internal timing to interpret data.
+· Less strict timing than synchronous interfaces: The sender and receiver don't need to maintain perfect, continuous clock alignment.
+· More timing structure than asynchronous interfaces: Unlike asynchronous protocols (e.g., UART), semi-synchronous protocols rely on shared timing information beyond simple start/stop bits.
+
+Made with help from ChatGPT
+
+18
+
+18
+
+Semi-synchronous Interfaces
+
+Why use a semi-synchronous interface? · Reduces the complexity of maintaining a fully shared clock. · Allows more flexible bit timing than fully synchronous links. · Still avoids the overhead of (asynchronous) per-character start/stop bits. · Often more tolerant of clock drift than fully synchronous systems. Examples · Manchester-encoded links where the clock is embedded and recovered, not
+transmitted as a separate line. · I²C-like protocols where a clock exists but edges may pause or stretch. · WiFi, Bluetooth, ZigBee, LoRa
+
+Made with help from ChatGPT
+
+19
+
+19
+
+RS-232C Serial Transmission Standard
+
+· RS-232C (1960) was originally intended to be a low-cost, asynchronous serial interface standard for connecting large central computers and remote terminal equipment to modems for the purposes of setting up data communication links over the public switched telephone network (PSTN)
+· It was, and still is, used to connect DTE (data terminal equipment) such as a computer terminal or PC, and a DCE (data circuitterminating equipment or data communication equipment), such as a modem
+· "modem" is short for modulator-demodulator, a device that converts digital signals to analogue signals for transmission, then converts them back
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+Wikipedia contributors. "RS-232." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 3 Oct. 2025. Web. 7 Nov. 2025.
+
+20
+
+20
+
+RS-232C
+· A minimal RS-232C connection requires only three wires:
+· (1) transmit data, (2) receive data, and a (3) ground return.
+· RS-232C assumes that the data will be sent as 7-bit or 8-bit character codes, plus other "overhead bits" that provide timing, minimum character spacing, and (optionally) single-bit error detection using parity bits.
+· RS-232C signals are single-ended, unmodulated signals.
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+21
+
+21
+
+RS-232C Alternatives
+
+· Official RS-232C specification has serious limitations:
+· The maximum transmission distance is only 15 m (50 ft.).
+· The maximum bit/baud rate is 20,000 bits per second (up to 200 Kbps is possible, but outside of the spec.)
+· Does not define such elements as the character encoding (i.e. ASCII, EBCDIC, or others), the framing of characters (start or stop bits, etc.), transmission order of bits, or error detection protocols.
+· The standard did not foresee the requirements of devices such as computers, printers, test instruments, POS terminals, and so on,
+· Remains in use in industrial applications and for embedded debugging, for example
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+Wikipedia contributors. "RS-232." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 3 Oct. 2025. Web. 7 Nov. 2025.
+
+22
+
+22
+
+RS-232C Alternatives
+· RS-422 is a balanced (differential mode) serial transmission standard with higher maximum bit rates.
+· Transmits +/- 6 V down to +/- 2 V differential outputs. · Input signals can be attenuated down to +/- 0.2 V. · Differential signals reject common mode additive noise. · Transmits up to 90 Kbps over up to 1.2 Km (3,900 ft).
+· RS-485 is a balanced (differential mode) serial transmission standard with higher maximum bit rates. E.g. 2 Mb/s @ 50 m
+· Supports multi-drop busses using tri-stateable drivers
+23
+23
+
+Typical Implementations (RS232C)
+Mechanical Aspects · D-subminiature connectors are common · DB-25-P plug (male) for Data Terminal Equipment (DTE). · DB-25-S socket (female) for Data Communications Equipment (DCE). · Very common is DE-9 Electrical Aspects · "Space" ("0") signal is a voltage in the range +3 V to +15 V. · "Mark" ("1") signal is a voltage in the range -3 V to -15 V. · An idle line is in the "mark" state. · A sustained "space" voltage is called a "break" signal. Data Frame Format · Start bit & 7 or 8 data bits & optional parity bit & stop bit(s).
+24
+Figures: Wikipedia contributors. "D-subminiature." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 10 Aug. 2025. Web. 8 Nov. 2025. https://www.picotech.com/library/knowledge-bases/oscilloscopes/rs-232-serialprotocol-decoding https://www.codrey.com/wp-content/uploads/2017/09/RS232-Framing.png
+24
+
+DE-9
+
+· Sometimes, incorrectly but acceptably, referred to as DB-9
+
+· At a minimum, RxD, TxD, GND
+· RTS and CTS can be useful in some applications
+
+Signal DCD RxD TxD DTR GND
+
+Signal Function Data Carrier Detect Receive Data Transmit Data Data Terminal Ready Signal Ground
+
+DSR Data Set Ready
+
+RTS Request To Send
+
+CTS Clear To Send
+
+RI
+
+Ring Indicator
+
+25
+
+Bill Marshall, Serial Communication: the Ins and Outs of RS-232, RS Design Spark
+
+https://www.rs-online.com/designspark/serial-communication-the-ins-and-outs-of-rs-232 accessed 20251107
+
+25
+
+Universal Asynchronous Receiver/Transmitter
+· A peripheral device for asynchronous serial communication in which the data format and transmission speeds are configurable.
+· Data bits are sent one by one (serially), from the least significant to the most significant, framed by start and stop bits so that precise timing is handled by the communication channel.
+· The electric signaling levels are handled by a driver circuit external to the UART. Common signal levels are RS-232, RS-485, and raw transistor-transistor logic (TTL) for short debugging links.
+
+Wikipedia contributors. "Universal asynchronous receiver-transmitter." Wikipedia, The Free Encyclopedia.
+
+26
+
+Wikipedia, The Free Encyclopedia, 2 Sep. 2025. Web. 9 Nov. 2025.
+
+26
+
+Baud ­ Origin and Use
+
+· The number of bits per second that a serial connection can support is often listed as its "baud rate"
+
+· Defined by the International Telecommunication Union
+
+Telecommunication Standardization Sector (ITU-T) as the number of
+
+symbols per second
+
+·
+
+Time
+
+per
+
+symbol,
+
+Ts ,
+
+in
+
+terms
+
+of
+
+the
+
+symbols
+
+per
+
+second,
+
+fs ,
+
+is
+
+#
+
+=
+
+$ %!
+
+· If the symbol is binary, then baud is the bits/second
+
+International Telecommunication Union. Vocabulary of Digital Transmission and Multiplexing, and Pulse Code Modulation (PCM) Terms (Recommendation G.701). ITU-T, Mar. 1993.
+
+27
+
+27
+
+Baud ­ Origin and Use
+
+· The number of bits per second that a serial connection can support is often listed as its "baud rate"
+
+· Defined by the International Telecommunication Union
+
+Telecommunication Standardization Sector (ITU-T) as the number of
+
+symbols per second
+
+·
+
+Time
+
+per
+
+symbol,
+
+Ts ,
+
+in
+
+terms
+
+of
+
+the
+
+symbols
+
+per
+
+second,
+
+fs ,
+
+is
+
+#
+
+=
+
+$ %!
+
+· If the symbol is binary, then baud is the bits/second
+
+· Symbols are not always binary(!)
+
+· ...but for a UART, they are...
+
+International Telecommunication Union. Vocabulary of Digital Transmission and Multiplexing, and Pulse Code Modulation (PCM) Terms (Recommendation G.701). ITU-T, Mar. 1993.
+
+28
+
+28
+
+UART Details
+
+1 start bit
+
+Packet
+5 to 9 data bits
+Data Frame
+
+0 or 1 1 to 2 stop
+
+parity bits
+
+bits
+
+· Asynchronous--no clock line shared · Simple wiring; not ideal for long distances · Uses a predefined baud rate
+(e.g., 1200, 2400, 9600, 115200,...) · Can support full-duplex operation · Primary lines: TX (transmit), RX (receive) · Optional hardware flow control: RTS/CTS · Configurable parameters: data bits, parity, stop bits · Frame structure: Start bit  Data bits  Parity (optional)  Stop bit(s)
+
+https://www.circuitbasics.com/basics-uart-communication/
+
+29
+
+29
+
+UART Operation, pictorially
+
+· UARTs take care of recovering the clock · Clocks must be within 10% of each other
+
+https://www.circuitbasics.com/basics-uart-communication/
+
+30
+
+30
+
+Zynq-7000 SoC ­ Two UARTs
+
+· Each supports independent, fully-programmable, full-duplex serial comms. · Programmable baud rates · Data formats supported;
+· 6, 7 or 8-bit data; odd, even, no parity; 1.0, 1.5 or 2.0 stop bits.
+· Interrupt conditions can be programmed for each UART. · Can use polling or interrupts. · Three error conditions are detected in hardware by each receiver:
+· (1) parity error; (2) framing error; and (3) overrun error.
+· The transmit and receive paths are provided with 64-byte buffers, which provide elastic storage to decouple the CPUs from the UARTs
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+31
+
+31
+
+Zynq-7000 SoC ­ Two UARTs
+Multiplexed Input/Output (MIO) Signals
+
+Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+32
+
+32
+
+Zynq ­ Simplified UART Architecture (TRM)
+· PS AXI = Processor Advanced eXtensible Interface. AXI is a Xilinx bus standard.
+Zhtytnpqs:7//0d0o0cSs.oaCmTde.ccohmnic/ra/leRne-UfeSr/eungc5e8M5-aznynuqa-l7000-SoC-TRM33
+33
+
+Zynq ­ Simplified UART Architecture (TRM)
+
+· Using combinations of divisors, a multitude of baud rates can be supported
+
+Table 19-1 UART Parameter Value Examples
+
+Clock
+
+CD BDIV Baud Rate
+
+UART Ref
+
+10417 7
+
+600
+
+UART Ref/8
+
+81 7
+
+9600
+
+UART Ref
+
+651 7
+
+9600
+
+UART Ref
+
+347 4
+
+28,800
+
+UART Ref
+
+62 6 115,200
+
+UART Ref
+
+31 6 230,400
+
+UART Ref
+
+9 11 460,800
+
+UART Ref
+
+9 5 921,600
+
+ Adapted from TRM Table 19-1
+
+Zhtytnpqs:7//0d0o0cSs.oaCmTde.ccohmnic/ra/leRne-UfeSr/eungc5e8M5-aznynuqa-l7000-SoC-TRM34
+
+34
+
+Pico ­ Two UARTs
+· RP2040 has 2 identical instances of a UART peripheral. · Each instance supports the following features:
+· Separate 32×8 Tx and 32×12 Rx First-in, First-out (FIFO) buffers · Programmable baud rate generator · Standard asynchronous communication bits (start, stop, parity) added on
+transmit and removed on receive · Line break detection · Programmable serial interface (5, 6, 7, or 8 bits) · 1 or 2 stop bits · programmable hardware flow control
+RP2040 Datasheet, https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf 35
+35
+
+Pico ­ Two UARTs
+· APB = Advanced Peripheral Bus · The "deep" FIFOs mean that the
+CPU doesn't have to immediately service the UART when data is sent or received
+· There is "processor slack"
+· Much like the Zynq, the baud rate generator can handle many rates
+· Individual maskable active HIGH interrupts are generated by the UART
+RP2040 Datasheet, https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf 36
+36
+
+Next Lecture
+· Hardware Abstraction Layer ­ HAL · RP2040 UART Example
+37
+37
+
+Questions
+
+https://archive.org/details/serial-experiments-lain-english
+
+38
+
+38
+
+

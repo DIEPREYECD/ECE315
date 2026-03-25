@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where pdftotext:*)",
+      "Bash(do pdftotext:*)"
+    ]
+  }
+}

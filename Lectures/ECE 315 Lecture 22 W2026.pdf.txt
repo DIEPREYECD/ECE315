@@ -1,0 +1,241 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 22 : · Memory mapping to peripherals
+1
+
+Last Lecture
+· RTM (refer to the manual) · Memory and memory-mapped I/O
+2
+2
+
+This Lecture
+· Memory mapping to peripherals
+3
+3
+
+Learning Objectives
+· Explain the concept of memory-mapped I/O · Describe the logical architecture of a typical microprocessor in the
+context of memory-mapped peripherals · Understand the RP2040 memory map as an example · From the example memory-mapped peripheral C program, analyze
+how SPI communication is implemented using direct register manipulation
+4
+4
+
+Logical Architecture
+· Typical microprocessor · The I/O ports can
+support serial or parallel interfaces to external devices · Internal devices may be treated as addressable memory,
+5
+5
+
+Logical Architecture
+· Typical microprocessor · The I/O ports can
+support serial or parallel interfaces to external devices · Internal devices may be treated as addressable memory, aka · Memory-mapped peripherals
+6
+6
+
+Advanced RISC Machines ­ ARM
+· A very popular, common computer architecture was developed by companies that eventually became ARM starting in the early 80s
+· It's no perfectly correct to say "computer architecture" because ARM licenses a family of Reduced Instruction Set Computer (RISC) instruction set architectures
+· ARM specifies the instructions and companies build hardware to execute them
+· Over 200 billion ARM-based computers sold so far (at least!)
+7
+We are going to use and ARM processor to illustrate memory-mapped peripherals
+7
+
+Examples
+· We look to a few example that are readily available · STM32 - a family of 32-bit microcontroller and
+microprocessor integrated circuits by STMicroelectronics. · Pico (RP2040, RP2350) ­a 32-bit dual-core ARM CortexM0+ microcontroller designed by Raspberry Pi Ltd. · nRF54LM20A ­ 32-bit ARM Cortex-M33 microcontroller from Nordic Semi.
+· Excellent embedded Bluetooth processor(!)
+8
+8
+
+RP2040 and Cortex-M0+
+· Use ARM to illustrate memory-mapped peripherals · Focus on the RP2040 since it is the processor on the Raspberry Pi Pico
+· The Pico is used in multiple MCTR courses
+· The ARM architecture it's based on is the Cortex-M0+
+9
+9
+
+RP2040 Architecture
+· Many peripherals
+10
+https://www.circuitstate.com/news/rp2040-pico-all-new-microcontroller-and-development-board-from-raspberry-pi/
+10
+
+RP2040 Architecture
+· Many peripherals · Dual processors, Proc0
+and Proc1 · SPI, I2C, UART, plus · Timer · Real-time Clock (RTC) · Analogue-to-Digital
+Convertor (ADC)
+11
+https://www.circuitstate.com/news/rp2040-pico-all-new-microcontroller-and-development-board-from-raspberry-pi/
+11
+
+RP2040 Architecture ­ more detail, bus fabric
+
+AHB is the Advanced Highperformance Bus matrix (crossbar)
+· AHB bus decoders match the address to the peripheral
+· AHB-Lite system typically has: · One AHB master (the Cortex-M0/M0+)
+· Multiple AHB slaves (Flash, SRAM, DMA, AHBto-APB bridge, etc.)
+· A bus decoder to select which slave responds
+· APB = Advanced Peripheral Bus maps peripherals in memory space
+
+RP2040 Bus Fabric
+
+Main reference for the RP2040 material is the RP2040 Datasheet, 2025-02-20
+
+12
+
+12
+
+RP2040 Memory Map
+
+Area Name
+ROM XIP SRAM APB Peripherals AHB-Lite Peripherals IOPORT Registers Cortex-M0+ internal registers
+
+Description
+Read-Only Memory eXecute-In-Place flash memory Static Random-Access Memory Advanced Peripheral Bus mapped peripherals Advanced High-Performance Bus mapped peripherals Input-Output Port registers Various registers
+
+Starting Address
+0x00000000 0x10000000 0x20000000 0x40000000 0x50000000 0xD0000000 0xE0000000
+
+13
+
+13
+
+RP2040 Memory Map
+
+Area Name
+ROM XIP SRAM APB Peripherals AHB-Lite Peripherals IOPORT Registers Cortex-M0+ internal registers
+
+Description
+Read-Only Memory eXecute-In-Place flash memory Static Random-Access Memory Advanced Peripheral Bus mapped peripherals Advanced High-Performance Bus mapped peripherals Input-Output Port registers Various registers
+
+Starting Address
+0x00000000 0x10000000 0x20000000 0x40000000 0x50000000 0xD0000000 0xE0000000
+
+14
+
+14
+
+RP2040 Memory Map
+
+· From the Cortex-M0+ Devices Generic User Guide
+· A more accurate view of how memory is organized in terms of address space
+· This is a picture of what can be supported, not what necessarily is
+· The Pico supports
+· 264kB on-chip (RP2040) SRAM, not the whole 512MB SRAM possible
+· 2MB on-board FLASH (code) memory, not the whole 512MB Code storage possible
+· APB and AHB-Lite Peripherals
+
+15
+
+ARM, Cortex-M0+ Devices Generic User Guide, rev. rp01, 2012
+
+15
+
+RP2040 Memory Map
+
+· From the Cortex-M0+ Devices Generic User Guide
+· A more accurate view of how memory is organized in terms of address space
+· This is a picture of what can be supported, not what necessarily is
+· The Pico supports
+· 264kB on-chip (RP2040) SRAM, not the whole 512MB SRAM possible
+· 2MB on-board FLASH (code) memory, not the whole 512MB Code storage possible
+· APB and AHB-Lite Peripherals
+
+16
+
+ARM, Cortex-M0+ Devices Generic User Guide, rev. rp01, 2012
+
+16
+
+Mapped APB Peripherals
+· Some example peripherals
+· CLOCKS ­ provides independent clocks to on-chip and external components
+· RESETS ­ supports software control of peripherals not critical to boot the processor, e.g., the USB controller
+· IO_BANK0 ­ the base interface to the RP2040's 36 multifunctional General-Purpose Input/Output (GPIO) pins
+· UART0 ­ access to the one of two universal asynchronous receiver-transmitter interfaces
+· ADC ­ a 12-bit analogue-to-digital converter with five multiplexed inputs
+
+SYSINFO_BASE SYSCFG_BASE CLOCKS_BASE RESETS_BASE PSM_BASE IO_BANK0_BASE IO_QSPI_BASE PADS_BANK0_BASE PADS_QSPI_BASE XOSC_BASE PLL_SYS_BASE PLL_USB_BASE BUSCTRL_BASE UART0_BASE UART1_BASE SPI0_BASE SPI1_BASE I2C0_BASE I2C1_BASE ADC_BASE PWM_BASE TIMER_BASE WATCHDOG_BASE RTC_BASE ROSC_BASE VREG_AND_CHIP_RESET_BASE TBMAN_BASE
+
+0x40000000 0x40004000 0x40008000 0x4000c000 0x40010000 0x40014000 0x40018000 0x4001c000 0x40020000 0x40024000 0x40028000 0x4002c000 0x40030000 0x40034000 0x40038000 0x4003c000 0x40040000 0x40044000 0x40048000 0x4004c000 0x40050000 0x40054000 0x40058000 0x4005c000 0x40060000 0x40064000 0x4006c000
+17
+
+17
+
+RP2040 Memory Map ­ AHB-Lite Peripherals
+· The Advanced High-Performance Bus is based on a Direct Memory Access (DMA) controller
+· It coordinates and performs bulk data transfers on the processor's behalf, leaving it to do other things
+· The throughput using the DMA is much faster than having the processor move data
+· At base address of 0x50000000 various DMA registers are mapped
+· The programmer writes or reads data at offsets corresponding to specific functional registers
+18
+18
+
+Memory-Mapped Peripheral Example
+· We'll get to DMA next lecture, but first an example · Consider using the RP2040 SPI to talk to an accelerometer · Will look at only part of a C program that uses memory-mapped
+registers to transfer data via SPI
+19
+19
+
+SPI->Accel
+Define the memorymapped locations for the SPI, resets, I/O locations
+20
+20
+
+SPI->Accel
+More definitions, some of which make use of the memory-mapped locations
+21
+21
+
+SPI->Accel
+Accelerometer register address definitions. It, too, has a memorymapping, but one independent of the Cortex-M0+ (RP2040)
+22
+22
+
+SPI->Accel ­ Main program; initializes SPI
+·
+23
+In the main program, the SPI initialization function is of interest, it's where the memory-mapped registers for SPI0 will be accessed
+23
+
+SPI->Accel
+spi_init() makes use of the memory-mapped locations
+24
+24
+
+SPI->Accel
+spi_init() makes use of the memory-mapped locations SPI0_SSPCR1=0 clears that location, disables SPI0 SPI0_SSPCPSR=125 sets that location to 0x7D to configure the SPI mode Finally, SPI0_SSPCR1=(1<<1) enables SPI0
+25
+25
+
+SPI->Accel
+The transfer function only refers to memory-mapped locations to manage the transfer of the data spi_read_byte manages the chip select signal and uses spi_transfer to do the work
+26
+26
+
+Summary
+· Microprocessors use memory-mapped I/O to access peripherals via normal memory addresses
+· For example, for the Cortex-M0+ (RP2040) peripherals accessed through APB & AHB buses
+· RP2040 memory map includes ROM, Flash (XIP), SRAM, APB peripherals, AHB-Lite peripherals, and GPIO registers
+· Examples of mapped peripherals: CLOCKS, RESETS, GPIO, UART, ADC, TIMER, PWM, DMA
+· SPI example shows direct register manipulation for peripheral configuration and data transfer
+27 Made with help from ChatGPT
+27
+
+Next Lecture
+· Direct Memory Access (DMA) · DMA Example (RP2040)
+28
+28
+
+Questions
+
+https://xkcd.com/768/
+29
+
+29
+
+Questions
+30
+30
+
+

@@ -1,0 +1,638 @@
+ECE 315
+Steven Knudsen, PhD, PEng Lecture 13 : · Hardware Abstraction Layer - HAL · RP2040 UART Example
+1
+
+Last Lecture
+· Serial Interfacing · UART · RS-232C, RS-422, RS-485
+2
+2
+
+This Lecture
+· Hardware Abstraction Layer ­ HAL · RP2040 UART Example
+3
+3
+
+Learning Objectives
+· Define "Hardware Abstraction Layer (HAL)" and why it's needed
+· Understand the concept of a HAL as a software layer that separates application-level code from hardware-specific details
+· Explain why a HAL is needed
+· Recognize how a HAL improves portability, maintainability, and code clarity by hiding processor-specific registers and configurations behind a consistent API
+· Recognize and understand the structure and layered architecture of a HAL
+· Application layer · HAL (GPIO, UART, SPI/I2C, timers, ADC, DMA, PIO) · MCU port (register-level implementation) · BSP (board-specific pin maps, clocks, power setup) · Physical MCU hardware · And how each layer has clear responsibilities.
+4
+4
+
+FreeRTOS UART Support
+· Knowing how to use an UART is very useful in embedded programming
+· Not only for moving data between processors and peripherals · Also for debugging (simple command-line interface, debug "printf's", etc.)
+· Up to the programmer to provide specialized functions to access the specific features of the target architecture (Zynq, RP2040, ...)
+· FreeRTOS is, by definition, portable across processor architectures
+· In ECE 315 it's used on the Zynq and RP2040 (Pico)
+· For each processor, a kind of adaptation layer of software is needed
+5
+5
+
+FreeRTOS UART Support ­ HAL
+6
+This is a project that defines common functionality like UART access based on an abstract architecture. For each processor, a specific set of low-level functions is written that provide the functionality defined in the HAL.
+6
+
+FreeRTOS UART Support ­ HAL
+
+· A now defunct Hardware Abstraction Layer (HAL) was proposed for FreeRTOS
+· Each of the UART functions was defined without reference to specific UART functions on a processor
+· They were "abstracted" away from the underlying hardware
+· Up to programmer to write the code to realize them
+
+https://freertoshal.github.io/doxygen/group__UART.html
+
+7
+
+7
+
+What is a HAL?
+
+· The HAL provides an abstraction layer to the processor and peripherals with hardware-specific configurations
+· The RTOS provides thread and resource mgmt.
+· The secure network interface provides an encrypted Internet connection using an appropriate interface (Ethernet, Wi-Fi, low-power radio).
+· The cloud connector is a protocol interface to the cloud solution provider.
+· The user application provides the bespoke functionality of the system.
+
+User Applications
+
+Cloud Connector
+
+Secure Network Interface
+
+Real-Time Operating System (RTOS)
+Hardware Abstraction Layer (HAL)
+Physical Embedded System or IoT Device, sensors, peripherals, etc.
+
+Max Maxfield, Securing Embedded and IoT Devices from Endpoint to Cloud, Embedded Computing Design, Feb 19, 2020,
+
+https://embeddedcomputing.com/technology/iot/device-management/securing-embedded-and-iot-devices-from-endpoint-to-cloud
+
+8
+
+accessed Nov 11, 2025
+
+8
+
+An RP2040 HAL Example
+
+HAL Layers
+App (protocols, tasks)
+
+BSP · Board Support Package
+· Pin numbers, clock settings, etc.
+
+HAL (gpio, uart, timer, pwm, spi/i2c, adc, dma, pio)
+
+MCU Port (RP2040 regs, IRQ glue, clock tree, pad/io mux)
+
+BSP (board pins, rails, clock & XOSC setup, pin functions)
+
+RP2040 (dual M0+, SIO, IO_BANK0, TIMER, PWM, UART, I2C, SPI, PIO, DMA)
+Made with help from ChatGPT 9
+
+9
+
+Some Example Headers ­ GPIO
+
+#include <stdint.h>
+
+#include <stdbool.h>
+
+void gpio_init(const gpio_t *g, const gpio_cfg_t *cfg);
+
+void gpio_write(const gpio_t *g, gpio_level_t v);
+
+typedef enum { GPIO_IN, GPIO_OUT } gpio_dir_t;
+
+gpio_level_t gpio_read(const gpio_t *g);
+
+typedef enum { GPIO_PULL_NONE, GPIO_PULL_UP, GPIO_PULL_DOWN } gpio_pull_t;
+
+void gpio_set(const gpio_t *g);
+
+typedef enum { GPIO_LOW=0, GPIO_HIGH=1 } gpio_level_t;
+
+void gpio_clr(const gpio_t *g);
+
+void gpio_toggle(const gpio_t *g);
+
+typedef struct { uint8_t pin; } gpio_t; // RP2040 uses global 0..29 numbering typedef struct {
+
+gpio_dir_t dir; gpio_pull_t pull;
+
+Essential GPIO functions
+
+bool
+
+open_drain; // emulated via OUT + OE control if needed
+
+uint8_t
+
+func;
+
+// 0=GPIO, else peripheral func (see BSP map)
+
+uint8_t
+
+drive_mA; // 2,4,8,12
+
+bool bool
+
+schmitt; // input schmitt trigger slew_fast; // fast slew
+
+} gpio_cfg_t;
+
+GPIO Configuration struct
+
+Made with help from ChatGPT 10
+
+10
+
+Some Example Headers ­ UART
+
+#include <stddef.h> #include <stdint.h> #include <stdbool.h>
+
+typedef enum { UART0=0, UART1=1 } uart_inst_t; typedef enum { UART_OK, UART_EBUSY, UART_EPARM, UART_EIO, UART_ETIMEOUT } uart_status_t; typedef enum { UART_PARITY_NONE, UART_PARITY_EVEN, UART_PARITY_ODD } uart_parity_t;
+
+Essential UART functions
+
+typedef struct { uart_inst_t inst;
+
+uint32_t uint8_t uint8_t
+
+baud; data_bits; stop_bits;
+
+uart_parity_t parity; } uart_cfg_t;
+
+// 5..8 // 1 or 2
+
+typedef void (*uart_rx_cb_t)(uint8_t byte, void *ctx);
+
+uart_status_t uart_init(const uart_cfg_t *cfg);
+
+size_t
+
+uart_write(uart_inst_t inst, const uint8_t *buf, size_t len, uint32_t timeout_ms);
+
+size_t
+
+uart_read (uart_inst_t inst,
+
+uint8_t *buf, size_t len, uint32_t timeout_ms);
+
+uart_status_t uart_set_rx_callback(uart_inst_t inst, uart_rx_cb_t cb, void *ctx); // IRQ-driven
+
+UART Configuration struct
+
+11
+
+11
+
+Some Example Headers and Code ­ BSP
+
+#include "hal/gpio.h"
+
+#include "board.h"
+
+#include "hal/pwm.h"
+
+const gpio_t LED
+
+= { .pin = 25 };
+
+extern const gpio_t LED;
+
+// e.g., GPIO25 on Pico
+
+const gpio_t UART0_TX = { .pin = 0 }; // GP0
+
+extern const gpio_t UART0_TX; extern const gpio_t UART0_RX;
+
+// your routing choice
+
+const gpio_t UART0_RX = { .pin = 1 }; // GP1
+
+void board_clock_init(void) {
+
+void board_clock_init(void); // XOSC + PLLs  clk_sys, clk_peri stable void board_pinmux_init(void); // IO_BANK0 FUNCSEL, pulls, drive strength void board_power_init(void); // (usually NOP on Pico-class boards)
+
+// 1) Enable XOSC to 12 MHz // 2) Configure PLLs (SYS ~125 MHz, USB 48 MHz), switch clk_sys // 3) Gate clk_peri = clk_sys for UART/SPI/I2C
+
+// (Done with raw regs in mcu/rp2040/clock.c so HAL stays clean)
+
+Board Support Package header file bsp/board.h
+
+} void board_pinmux_init(void) {
+
+// Map UART0 to GP0/GP1, LED to GPIO function, etc.
+
+Board Support Package c file bsp/board.c
+
+// Configure pads: pulls, drive, schmitt based on desired defaults. }
+
+12
+
+void board_power_init(void) { /* usually nothing for RP2040 dev boards */ }
+
+We have to fill in the blanks here, in board.c
+
+12
+
+MCU port (register-level): RP2040-specific
+
+#include "hal/gpio.h" #include "mcu/rp2040/regs.h" // your local header or Pico SDK
+
+static inline void pad_cfg(uint8_t pin, const gpio_cfg_t *cfg) { // PADS_BANK0: pullups/pulldowns, drive, schmitt, slew
+
+GPIO support mcu/rp2040/gpio_rp2040.c
+
+volatile padsbank0_hw_t *P = PADS_BANK0;
+
+uint32_t v = 0; if (cfg->pull == GPIO_PULL_UP) v |= PADS_BANK0_GPIO_PUE_BITS; if (cfg->pull == GPIO_PULL_DOWN) v |= PADS_BANK0_GPIO_PDE_BITS;
+
+if (cfg->slew_fast)
+
+v |= PADS_BANK0_GPIO_SLEWFAST_BITS;
+
+if (cfg->schmitt)
+
+v |= PADS_BANK0_GPIO_SCHMITT_BITS;
+
+// drive_mA  DRV field (00=2mA,01=4mA,10=8mA,11=12mA)
+
+v |= ((cfg->drive_mA >= 12) ? 3 : (cfg->drive_mA >= 8) ? 2 : (cfg->drive_mA >= 4) ? 1 : 0)
+
+<< PADS_BANK0_GPIO_DRV_LSB; P->io[pin] = v;
+
+}
+
+13
+
+13
+
+MCU port (register-level): RP2040-specific
+
+static inline void funcsel(uint8_t pin, uint8_t func) {
+
+// IO_BANK0: FUNCSEL chooses peripheral (0=SPI0,1=UART0,2=I2C0,...,31=GPIO)
+
+iobank0_hw_t *I = IO_BANK0;
+
+uint32_t ctrl = I->io[pin].ctrl;
+
+ctrl &= ~IO_BANK0_GPIO0_CTRL_FUNCSEL_BITS;
+
+ctrl |= ((uint32_t)func << IO_BANK0_GPIO0_CTRL_FUNCSEL_LSB);
+
+I->io[pin].ctrl = ctrl; }
+
+void gpio_init(const gpio_t *g, const gpio_cfg_t *cfg) { // Ensure peripheral is out of reset and clk_peri enabled done by board_clock_init
+
+pad_cfg(g->pin, cfg);
+
+funcsel(g->pin, cfg->func ? cfg->func : 31 /*GPIO*/);
+
+// SIO direction & initial level
+
+if (cfg->dir == GPIO_OUT) { SIO->gpio_oe_set = (1u << g->pin);
+
+} else {
+
+SIO->gpio_oe_clr = (1u << g->pin);
+
+}
+
+14
+
+}
+
+14
+
+MCU port (register-level): RP2040-specific
+void gpio_write(const gpio_t *g, gpio_level_t v) { if (v) SIO->gpio_set = (1u << g->pin); else SIO->gpio_clr = (1u << g->pin);
+} gpio_level_t gpio_read(const gpio_t *g) {
+return (SIO->gpio_in & (1u << g->pin)) ? GPIO_HIGH : GPIO_LOW; } void gpio_set(const gpio_t *g) { SIO->gpio_set = (1u << g->pin); } void gpio_clr(const gpio_t *g) { SIO->gpio_clr = (1u << g->pin); } void gpio_toggle(const gpio_t *g){ SIO->gpio_xor = (1u << g->pin); }
+15
+15
+
+MCU port (register-level): RP2040-specific
+
+#include "hal/uart.h" #include "mcu/rp2040/regs.h"
+typedef struct { uart_rx_cb_t cb; void *ctx; } rx_ctx_t; static rx_ctx_t s_rx[2];
+
+GPIO support mcu/rp2040/uart_rp2040.c
+
+static inline uart_hw_t* U(uart_inst_t i){ return (i==UART0) ? UART0_HW : UART1_HW; }
+
+16
+
+16
+
+MCU port (register-level): RP2040-specific
+
+uart_status_t uart_init(const uart_cfg_t *cfg) {
+
+// LCR: data bits, parity, stop
+
+uart_hw_t *u = U(cfg->inst);
+
+uint32_t lcr = 0;
+
+// Disable before config
+
+lcr |= (cfg->data_bits - 5) << UART_LCR_H_WLEN_LSB; // 5..8  0..3
+
+u->cr = 0;
+
+if (cfg->stop_bits == 2) lcr |= UART_LCR_H_STP2_BITS;
+
+if (cfg->parity != UART_PARITY_NONE) {
+
+// Baud: IBRD/FBRD from clk_peri (board set)
+
+lcr |= UART_LCR_H_PEN_BITS;
+
+uint32_t baud = cfg->baud;
+
+if (cfg->parity == UART_PARITY_EVEN) lcr |= UART_LCR_H_EPS_BITS;
+
+// (provide via your regs shim or store during clock init) }
+
+uint32_t clk = CLOCKS->clk_peri_ctrl_hz;
+
+u->lcr_h = lcr;
+
+uint32_t bauddiv_x64 = (clk << 6) / (16 * baud);
+
+u->ibrd = bauddiv_x64 >> 6;
+
+// Enable TX/RX
+
+u->fbrd = bauddiv_x64 & 0x3F;
+
+u->cr = UART_CR_TXE_BITS | UART_CR_RXE_BITS | UART_CR_UARTEN_BITS;
+
+return UART_OK;
+
+}
+
+17
+
+17
+
+MCU port (register-level): RP2040-specific
+
+size_t uart_write(uart_inst_t inst, const uint8_t *buf, size_t len, uint32_t timeout_ms) {
+
+uart_hw_t *u = U(inst);
+
+uint64_t deadline = timer_now_us() + (uint64_t)timeout_ms * 1000;
+
+size_t n=0;
+
+while (n < len) {
+
+if (!(u->fr & UART_FR_TXFF_BITS)) { u->dr = buf[n++]; }
+
+else if (timer_now_us() > deadline) break;
+
+} return n; }
+
+size_t uart_read(uart_inst_t inst, uint8_t *buf, size_t len, uint32_t timeout_ms) { uart_hw_t *u = U(inst); uint64_t deadline = timer_now_us() + (uint64_t)timeout_ms * 1000;
+
+size_t n=0;
+
+while (n < len) {
+
+if (!(u->fr & UART_FR_RXFE_BITS)) { buf[n++] = (uint8_t)u->dr; }
+
+else if (timer_now_us() > deadline) break;
+
+}
+
+return n;
+
+}
+
+18
+
+18
+
+MCU port (register-level): RP2040-specific
+
+uart_status_t uart_set_rx_callback(uart_inst_t inst, uart_rx_cb_t cb, void *ctx) {
+
+s_rx[inst] = (rx_ctx_t){cb, ctx};
+
+U(inst)->imsc |= UART_IMSC_RXIM_BITS; // enable RX interrupt
+
+// Enable NVIC IRQ for UART0/1 in your vector table
+
+return UART_OK; }
+
+// ISR void UART0_IRQ_Handler(void) {
+
+uint32_t mis = UART0_HW->mis;
+
+if (mis & UART_MIS_RXMIS_BITS) {
+
+while (!(UART0_HW->fr & UART_FR_RXFE_BITS)) {
+
+uint8_t b = (uint8_t)UART0_HW->dr;
+
+if (s_rx[0].cb) s_rx[0].cb(b, s_rx[0].ctx);
+
+}
+
+UART0_HW->icr = UART_ICR_RXIC_BITS;
+
+}
+
+}
+
+19
+
+19
+
+RP2040 App using the HAL
+
+#include "bsp/board.h" #include "hal/gpio.h" #include "hal/uart.h" #include "hal/timer.h"
+static void on_tick(void *ctx) { (void)ctx; extern const gpio_t LED; gpio_toggle(&LED);
+}
+static void on_uart(uint8_t b, void *ctx) { (void)ctx; const uint8_t e[2] = { b, '\n' }; uart_write(UART0, e, 2, 10);
+}
+
+int main(void) { board_power_init(); board_clock_init(); board_pinmux_init(); timer_init();
+gpio_cfg_t led_cfg = {.dir=GPIO_OUT, .pull=GPIO_PULL_NONE, .func=31, .drive_mA=8, .schmitt=true};
+gpio_init(&LED, &led_cfg);
+uart_cfg_t u0 = { .inst=UART0, .baud=115200, .data_bits=8, .stop_bits=1, .parity=UART_PARITY_NONE };
+uart_init(&u0); uart_set_rx_callback(UART0, on_uart, NULL);
+timer_start(/*alarm*/0, /*period*/250000, TMR_PERIODIC, on_tick, NULL);
+while (1) { __wfi(); } // sleep until IRQ 20
+}
+
+20
+
+RP2040 App using the HAL
+
+#include "bsp/board.h" #include "hal/gpio.h" #include "hal/uart.h" #include "hal/timer.h"
+static void on_tick(void *ctx) { (void)ctx; extern const gpio_t LED; gpio_toggle(&LED);
+}
+static void on_uart(uint8_t b, void *ctx) { (void)ctx; const uint8_t e[2] = { b, '\n' }; uart_write(UART0, e, 2, 10);
+}
+
+int main(void) { board_power_init(); board_clock_init(); board_pinmux_init(); timer_init();
+gpio_cfg_t led_cfg = {.dir=GPIO_OUT, .pull=GPIO_PULL_NONE, .func=31, .drive_mA=8, .schmitt=true};
+gpio_init(&LED, &led_cfg);
+uart_cfg_t u0 = { .inst=UART0, .baud=115200, .data_bits=8, .stop_bits=1, .parity=UART_PARITY_NONE };
+uart_init(&u0); uart_set_rx_callback(UART0, on_uart, NULL);
+timer_start(/*alarm*/0, /*period*/250000, TMR_PERIODIC, on_tick, NULL);
+while (1) { __wfi(); } // sleep until IRQ 21
+}
+
+21
+
+RP2040 App using the HAL
+
+#include "bsp/board.h" #include "hal/gpio.h" #include "hal/uart.h" #include "hal/timer.h"
+static void on_tick(void *ctx) { (void)ctx; extern const gpio_t LED; gpio_toggle(&LED);
+}
+static void on_uart(uint8_t b, void *ctx) { (void)ctx; const uint8_t e[2] = { b, '\n' }; uart_write(UART0, e, 2, 10);
+}
+
+int main(void) { board_power_init(); board_clock_init(); board_pinmux_init(); timer_init();
+gpio_cfg_t led_cfg = {.dir=GPIO_OUT, .pull=GPIO_PULL_NONE, .func=31, .drive_mA=8, .schmitt=true};
+gpio_init(&LED, &led_cfg);
+uart_cfg_t u0 = { .inst=UART0, .baud=115200, .data_bits=8, .stop_bits=1, .parity=UART_PARITY_NONE };
+uart_init(&u0); uart_set_rx_callback(UART0, on_uart, NULL);
+timer_start(/*alarm*/0, /*period*/250000, TMR_PERIODIC, on_tick, NULL);
+while (1) { __wfi(); } // sleep until IRQ 22
+}
+
+22
+
+Zynq UART for FreeRTOS
+· In ECE 315 labs the Zybo (Zynq) UART is used · The API from Xilinx, uartps, is used within FreeRTOS-based
+functions to manage UART transmit and receive · For example, let's look at some of the UART code from the lab...
+void interruptHandler(void *CallBackRef, u32 event, unsigned int EventData) {
+if (event == RECEIVED_DATA){ handleReceiveEvent();
+} else if (event == SENT_DATA){ handleSentEvent();
+} else { xil_printf("Neither a RECEIVE event nor a SEND event\n");
+}
+23
+}
+23
+
+Zynq UART for FreeRTOS
+
+void interruptHandler(void *CallBackRef, u32 event, unsigned int EventData)
+
+{
+
+if (event == RECEIVED_DATA){
+
+handleReceiveEvent();
+
+} else if (event == SENT_DATA){
+
+handleSentEvent();
+
+} else { xil_printf("Neither a RECEIVE event nor a SEND event\n");
+
+}
+
+}
+
+Xilinx API in purple
+
+24
+
+24
+
+void interruptHandler(void *CallBackRef, u32 event, unsigned int EventData)
+
+{
+
+if (event == RECEIVED_DATA){
+
+void handleReceiveEvent()
+
+handleReceiveEvent();
+
+{
+
+} else if (event == SENT_DATA){
+
+u8 receive_buffer; BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+handleSentEvent();
+
+countRxIrq++;
+
+} else {
+
+while (XUartPs_IsReceiveData(UART_BASEADDR)){ receive_buffer = XUartPs_ReadReg( UART_BASEADDR, UART_FIFO_OFFSET);
+
+xil_printf("Neither a RECEIVE event nor a SEND event\n");
+
+xQueueSendFromISR( xRxQueue, &receive_buffer, &xHigherPriorityTaskWoken);
+
+}
+
+}
+
+portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+}
+
+}
+
+Zynq UART for FreeRTOS
+
+void handleSentEvent()
+{ u8 transmit_data;
+BaseType_t xHigherPriorityTaskWoken = pdFALSE; countTxIrq++; transmitDataFromQueue(&transmit_data, &xHigherPriorityTaskWoken); portYIELD_FROM_ISR(xHigherPriorityTaskWoken); disableTxEmpty(); }
+
+void transmitDataFromQueue(u8 *data, BaseType_t *taskToSwitch)
+
+{ if (XUartPs_IsTransmitEmpty(&UART)){
+
+while (uxQueueMessagesWaitingFromISR(xTxQueue) > 0 ){
+
+/*************************** Enter your code here ****************************/
+
+// TODO: receive data from the queue and send it through the UART interface
+
+/*****************************************************************************/ }
+
+}
+
+}
+
+25
+
+25
+
+Zynq UART API and FreeRTOS HAL
+https://freertoshal.github.io/doxygen/group__UART.html https://xilinx.github.io/embeddedsw.github.io/uartps/doc/html/api/xuartps_8h.html
+26
+Can see how the Xilinx API might be used to support a FreeRTOS HAL. This would allow us to have the same FreeRTOS code on multiple platforms. We'd only need to have the Xilinx version to compile into the supporting code.
+26
+
+Next Lecture
+· More Serial... · Ethernet LAN · CAN · USB
+27
+27
+
+Questions
+28
+28
+
+https://en.wikipedia.org/w/index.php?title=HAL_9000&oldid=1311674673 https://xkcd.com/375/
+
+
