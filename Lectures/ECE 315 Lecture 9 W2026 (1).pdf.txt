@@ -1,24 +1,0 @@
-ECE 315
-Steven Knudsen, PhD, PEng Lecture 9 : · Quiz #1 · General Q&A
-1
-
-Last Lecture
-· More on RTOS · Tasks and Scheduling · Protecting Critical Code
-2
-2
-
-This Lecture
-· Quiz #1 · General Q&A
-3
-3
-
-Next Lecture
-· Mutexes and Semaphore example · Synchronization · Priority Inversion · Deadlock
-4
-4
-
-Questions
-5
-5
-
-

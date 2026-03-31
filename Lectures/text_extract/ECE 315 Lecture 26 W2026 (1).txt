@@ -1,0 +1,603 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 26 :
+• Pico VGA Example
+• DMA + PIO Example
+
+
+
+
+                            1
+Last Lecture
+
+• DMA Example (RP2040)
+• Programmable I/O (PIO)
+
+
+
+
+                           2
+
+
+
+
+                               2
+This Lecture
+
+• Pico VGA Example
+• DMA + PIO Example
+
+
+
+
+                      3
+
+
+
+
+                          3
+Learning Objectives
+
+• Appreciate two examples of using DMA and PIO
+• Understand VGA Signaling and Timing
+• Apply State Machine Concepts to VGA Generation
+• Describe the RP2040 VGA Implementation Architecture
+• Understand how to use PIO for PWM Waveform Generation
+• Implement DMA + PIO Interaction
+
+
+
+
+                                                          4
+
+
+
+
+                                                              4
+ Video Graphics Array (VGA)
+
+ • Refers to both a de facto standard and hardware computer display
+    • These days always uses 15-pin D-subminiature connector and 640x480 pixel
+      resolution
+ • Very quickly and widely adopted, still in use
+ • Various extensions to higher resolutions, e.g., up to 2048x1536
+ • Comprises 3 main binary TTL (5V) signals
+    • Horizontal sync
+    • Vertical sync
+    • RGB levels
+
+                Wikipedia contributors. "Video Graphics Array." Wikipedia, The Free Encyclopedia.   https://vanhunteradams.com/Pico/VGA/VGA.html   5
+                Wikipedia, The Free Encyclopedia, 14 Nov. 2025. Web. 7 Dec. 2025.
+
+
+
+
+DB15 connector - By Evan-Amos - Own work, Public Domain,
+https://commons.wikimedia.org/w/index.php?curid=11339219
+
+
+
+
+                                                                                                                                                       5
+VGA signals
+General idea;
+• Within every vertical sync interval,
+  480 horizontal lines are drawn
+• On each line, 640 horizontal RGB
+  levels are output
+
+
+
+
+                   http://www.ue.eti.pg.gda.pl/fpgalab/zadania.spartan3/zad_vga_generowanie_sygnalu_vga_en.html
+                                                                                                                  6
+                   https://electronics.stackexchange.com/questions/166681/how-exactly-does-a-vga-cable-work
+
+
+
+
+                                                                                                                      6
+VGA signals
+• Slightly more complicated
+  since a few extra
+  horizontal pixels and extra
+  vertical lines are needed
+   • So-called front and back
+     porches
+• Historical due to Cathode
+  Ray Tube (CRT)
+  technology
+
+
+                                https://vanhunteradams.com/Pico/VGA/VGA.html   7
+
+
+
+
+                                                                                   7
+                                  H line
+
+VGA signals
+• A line (H line) is a row of
+  pixels
+• A field (V field) is a set of
+  lines
+
+
+
+
+                                                                                          V field
+                                           https://vanhunteradams.com/Pico/VGA/VGA.html    8
+
+
+
+
+                                                                                                    8
+Number of H and V lines
+                                          One Line                                       One Field
+                                    8 pixels front porch                      2 lines front porch
+"VGA industry standard" 640x480
+                                   96 pixels horizontal sync                  2 lines vertical sync
+pixel mode
+                                   40 pixels back porch                     25 lines back porch
+                                    8 pixels left border                      8 lines top border
+General characteristics           640 pixels video                        480 lines video
+                                    8 pixels right border                     8 lines bottom border
+• Clock frequency 25.175 MHz      800 pixels total per line               525 lines total per field
+• Line frequency 31469 Hz
+• Field frequency 59.94 Hz
+
+
+                                                     https://www.epanorama.net/documents/pc/vga_timing.html   9
+
+
+
+
+                                                                                                                  9
+State Machine for VGA
+                                                One Line                                 One Field
+                                          8 pixels front porch                 2 lines front porch
+• Very simple state machine
+                                         96 pixels horizontal sync             2 lines vertical sync
+• H and V state machines count and       40 pixels back porch                25 lines back porch
+  toggle the sync signals accordingly     8 pixels left border                 8 lines top border
+• Pixel state machine outputs 800       640 pixels video                   480 lines video
+  RGB values when v sync is active        8 pixels right border                8 lines bottom border
+                                        800 pixels total per line          525 lines total per field
+
+
+
+
+                                                              https://vanhunteradams.com/Pico/VGA/VGA.html   10
+
+
+
+
+                                                                                                                  10
+ RP2040 (Pico) Implementation
+• Three PIO state machines
+  (synchronized with one another
+  via interrupts) drive a VGA screen.
+• The pixel data to draw on the
+  screen is communicated to the PIO
+  state machines via DMA
+• Pixel data is stored in a global
+  character array
+• Application code need only update
+  the array
+
+
+                                        11
+
+
+
+
+                                             11
+H sync generation
+                                           pull block ; Pull from FIFO to OSR (only happens once)
+                                           .wrap_target ; Program wraps to here
+• PIO assembly
+                                           ; ACTIVE + FRONTPORCH
+• Clock is set to 25.172 MHz               mov x, osr ; Copy value from OSR to x scratch register
+                                           activeporch:
+• The scratch registers are 32-bit, more       jmp x-- activeporch ; Remain high in active mode and front
+  than big enough to count 640+16, but     porch
+  can’t be directly set
+                                           ; SYNC PULSE
+    • Can copy from OSR to x               pulse:
+                                               set pins, 0 [31] ; Low for hsync pulse (32 cycles)
+• activeporch loop is 656 cycles               set pins, 0 [31] ; Low for hsync pulse (64 cycles)
+• Can see how the H sync signal is             set pins, 0 [31] ; Low for hsync pulse (96 cycles)
+
+  generated by this                        ; BACKPORCH
+                                           backporch:
+• Interrupt signal generated at the end        set pins, 1 [31] ; High for back porch (32 cycles)
+  before it wraps                              set pins, 1 [12] ; High for back porch (45 cycles)
+                                               irq 0 [1] ; Set IRQ to signal end of line (47 cycles)
+                                           .wrap
+
+                                                                            https://vanhunteradams.com/Pico/VGA/VGA.html   12
+
+
+
+
+                                                                                                                                12
+H sync generation
+                    pull block ; Pull from FIFO to OSR (only happens once)
+                    .wrap_target ; Program wraps to here
+
+                    ; ACTIVE + FRONTPORCH
+                    mov x, osr ; Copy value from OSR to x scratch register
+                    activeporch:
+                        jmp x-- activeporch ; Remain high in active mode and front
+                    porch
+
+                    ; SYNC PULSE
+                    pulse:
+                        set pins, 0 [31] ; Low for hsync pulse (32 cycles)
+                        set pins, 0 [31] ; Low for hsync pulse (64 cycles)
+                        set pins, 0 [31] ; Low for hsync pulse (96 cycles)
+
+                    ; BACKPORCH
+                    backporch:
+                        set pins, 1 [31] ; High for back porch (32 cycles)
+                        set pins, 1 [12] ; High for back porch (45 cycles)
+                        irq 0 [1] ; Set IRQ to signal end of line (47 cycles)
+                    .wrap
+
+                                                     https://vanhunteradams.com/Pico/VGA/VGA.html   13
+
+
+
+
+                                                                                                         13
+                                                         Generating a Mandelbrot set
+
+
+
+
+     14
+
+
+
+
+          https://vanhunteradams.com/Pico/VGA/VGA.html
+
+
+
+
+14
+DMA + PIO Example
+
+                    15
+
+
+
+
+                         15
+Use PIO to output PWM signal to LED
+
+• The idea is to output bits on a GPIO pin at a constant rate so that the
+  resulting signal is a form of pulse-width modulation (PWM)
+• Using a parallel in, serial out (POSI) shift register, this is be easily
+  accomplished
+
+
+
+
+                                                                             16
+
+
+
+
+                                                                                  16
+Use PIO to output PWM signal to LED
+                           PWM%    Hex    clk
+
+                              0    0x00
+• Consider an 8-bit POSI
+  shift register.           12.5   0x01
+
+
+• Expressed in hex, the      25    0x03
+
+  PWM widths are            37.5   0x07
+  fractions of 8
+                             50    0x0F
+
+
+                            62.5   0x1F
+
+
+                             75    0x3F
+
+
+                            87.5   0x7F
+
+
+             17             100    0xFF
+
+
+
+
+                                                17
+Use the RP2040 PIO Shift Register
+• We can use the PIO output shift
+  register (OSR)
+• OSR connected to a GPIO
+• OSR starts with 32-bit PWM pattern
+• Bits are shifted out to the GPIO that
+  is attached to an LED to turn it on a
+  specific percentage of time
+• Every 32 PIO clock cycles fill the TX
+  FIFO, which is then copied into the SR
+  when the register is empty
+
+
+                                           18
+
+
+
+
+                                                18
+Use the RP2040 PIO Shift Register
+• Set the PIO clock to be 10 system
+  clock cycles
+• Use 32 bits, so 32 PWM levels
+• Outputting the 32 bits of one level
+  will take
+
+ 32*10/fclk = 320/125e6 =
+ 2.56µs
+• Going through all 32 levels will take
+  32*2.56 = 81.92µs
+
+
+                                          19
+
+
+
+
+                                               19
+Use the RP2040 PIO Shift Register
+• We want the 32 levels to take 2
+  seconds in total so the LED changing
+  can be seen (it’s not too fast)
+• Thus, we need to repeat each level
+
+   2s/81.92µs ~= 24414 times
+
+
+• Let’s look at the program on Wokwi
+
+
+
+
+                                         20
+
+
+
+
+                                              20
+PIO Program
+     ;
+     ; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+     ;
+     ; SPDX-License-Identifier: BSD-3-Clause
+     ;
+
+     .program pio_serialiser
+
+     ; Just serialise a stream of bits. Take 32 bits from each FIFO record. LSB-first.
+
+     .wrap_target
+         out pins, 1
+     .wrap
+
+     % c-sdk {
+     static inline void pio_serialiser_program_init(PIO pio, uint sm, uint offset, uint data_pin, float clk_div) {
+         pio_gpio_init(pio, data_pin);
+         pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 1, true);
+         pio_sm_config c = pio_serialiser_program_get_default_config(offset);
+         sm_config_set_out_pins(&c, data_pin, 1);
+         sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+         sm_config_set_clkdiv(&c, clk_div);
+         sm_config_set_out_shift(&c, true, true, 32);
+         pio_sm_init(pio, sm, offset, &c);
+         pio_sm_set_enabled(pio, sm, true);
+     }
+     %}
+                                                                                                           21
+
+
+
+
+                                                                                                                     21
+PIO Program
+     ;
+     ; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+     ;
+     ; SPDX-License-Identifier: BSD-3-Clause
+     ;
+
+     .program pio_serialiser
+
+     ; Just serialise a stream of bits. Take 32 bits from each FIFO record. LSB-first.
+
+     .wrap_target
+         out pins, 1             OUT instruction shifts data from the OSR to other destinations,
+     .wrap
+                                 1…32 bits at a time. In this case, 1 bit at a time
+     % c-sdk {
+     static inline void pio_serialiser_program_init(PIO pio, uint sm, uint offset, uint data_pin, float clk_div) {
+         pio_gpio_init(pio, data_pin);
+         pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 1, true);
+         pio_sm_config c = pio_serialiser_program_get_default_config(offset);
+         sm_config_set_out_pins(&c, data_pin, 1);
+         sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+         sm_config_set_clkdiv(&c, clk_div);
+         sm_config_set_out_shift(&c, true, true, 32);
+         pio_sm_init(pio, sm, offset, &c);
+         pio_sm_set_enabled(pio, sm, true);
+     }
+     %}
+                                                                                                           22
+
+
+
+
+                                                                                                                     22
+PIO Program compiled
+// -------------------------------------------------- //
+// This file is autogenerated by pioasm; do not edit! //
+// -------------------------------------------------- //
+
+#pragma once
+
+#if !PICO_NO_HARDWARE
+#include "hardware/pio.h"
+#endif
+
+// -------------- //
+// pio_serialiser //
+// -------------- //
+
+#define pio_serialiser_wrap_target 0
+#define pio_serialiser_wrap 0
+#define pio_serialiser_pio_version 0
+
+
+static const uint16_t pio_serialiser_program_instructions[] = {
+             // .wrap_target
+     0x6001, // 0: out pins, 1
+             // .wrap
+};
+
+
+                                       A single instruction(!)
+
+                                                                  23
+
+
+
+
+                                                                       23
+  PIO Program compiled
+                   #if !PICO_NO_HARDWARE
+                   static const struct pio_program pio_serialiser_program = {
+                       .instructions = pio_serialiser_program_instructions,
+                       .length = 1,
+                       .origin = -1,
+                       .pio_version = pio_serialiser_pio_version,
+                   #if PICO_PIO_VERSION > 0
+                       .used_gpio_ranges = 0x0
+                   #endif
+                   };
+
+
+                   static inline pio_sm_config pio_serialiser_program_get_default_config(uint offset) {
+                       pio_sm_config c = pio_get_default_sm_config();
+                       sm_config_set_wrap(&c, offset + pio_serialiser_wrap_target, offset + pio_serialiser_wrap);
+                       return c;
+                   }
+
+
+                   static inline void pio_serialiser_program_init(PIO pio, uint sm, uint offset, uint data_pin, float clk_div)
+                   {
+                       pio_gpio_init(pio, data_pin);
+                       pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 1, true);
+                       pio_sm_config c = pio_serialiser_program_get_default_config(offset);
+                       sm_config_set_out_pins(&c, data_pin, 1);
+Called by main.c       sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+                       sm_config_set_clkdiv(&c, clk_div);
+                       sm_config_set_out_shift(&c, true, true, 32);
+                       pio_sm_init(pio, sm, offset, &c);
+                       pio_sm_set_enabled(pio, sm, true);
+                   }                                                                                                    24
+                   #endif
+
+
+
+
+                                                                                                                                 24
+main.c
+
+
+
+
+         25
+
+
+
+
+              25
+main.c
+
+
+
+
+         26
+
+
+
+
+              26
+Wokwi time… ECE 315 PIO DMA Example
+
+https://wokwi.com/projects/449636130324734977
+
+
+
+
+                                                27
+
+
+
+
+                                                     27
+Summary
+
+• Showed how RP2040 PIO can be used to generate complex hardware
+  waveforms, barely using the CPU
+  • In the example, the CPU was used mostly to compute the Mandelbrot set
+• After review of VGA signals, showed how one PIO state machine (SM)
+  is used to generate H Sync, one generates V Sync, the the third SM
+  clocks out the RGB signals
+• A second example using only DMA and PIO, no CPU, to cycle an LED
+  through 32 PWM levels
+  • Used the clock divider to slow the PIO and repeated DMA transfers to make
+    the PWM ramping “human speed”
+
+                                                                                28
+
+
+
+
+                                                                                     28
+Next Lecture
+
+• Using DMA to Capture Sensor Data
+
+
+
+
+                                     29
+
+
+
+
+                                          29
+Questions
+
+
+
+
+            30
+
+
+
+
+                 30
+

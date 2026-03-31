@@ -1,0 +1,678 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 31 :
+• Motion control
+• Encoders
+• Servo and DC Motors
+• Other actuators
+
+
+
+
+                            1
+Last Lecture
+
+• Motion control
+• Stepper motors
+• HW controllers, H-bridge
+
+
+
+
+                             2
+
+
+
+
+                                 2
+This Lecture
+
+• Motion control
+• Encoders
+• Servo and DC Motors
+• Other actuators
+
+
+
+
+                        3
+
+
+
+
+                            3
+Learning Objectives
+• Explain and analyze open-loop and closed-loop motion control systems using encoders and
+  feedback
+• Describe and apply principles of operation for servo motors, brushed and brushless DC motors,
+  including PWM and H-bridge control
+• Select and justify appropriate electro-mechanical actuators (motors, linear actuators, solenoids,
+  relays) for embedded system applications
+• Distinguish between open-loop and closed-loop motion control systems and explain their
+  advantages, limitations, and typical use cases
+• Describe the principles of operation of rotary shaft encoders, including optical, magnetic, and
+  magneto-resistive types, and explain how encoder feedback enables closed-loop control
+• Identify and compare other electro-mechanical actuators, including linear actuators, solenoids,
+  and mechanical versus solid-state relays, with respect to functionality and application domains
+
+                                                                                  Made with help from ChatGPT   4
+
+
+
+
+                                                                                                                    4
+General Motor Motion Control
+• In the previous lecture we explored how a stepper motor is
+  constructed and works, and how to drive it
+• We never specified how we might know the current position of the
+  stator (assume here that the stator is attached to the motor shaft)
+• This form of control is known as “open loop”
+  • There is no knowledge of the motor state (position, speed, power, …) that is
+    returned (aka, “fed back”) to the controller
+
+                                     One-way control signals   Motor
+                     Controller
+
+
+                                                                                   5
+
+
+
+
+                                                                                       5
+Open–loop Control
+• In open-loop control, there is no knowledge of the motor state (position, speed,
+  power, …) that is returned (aka, “fed back”) to the controller
+• Sometimes it doesn’t really matter…
+• If needed, it is estimated using some sort of model, e.g., manually step the motor
+  to a starting position, then count the steps made and in which direction
+   • This might be “good enough”
+
+
+
+
+                                                                                                                   6
+                                                            Adapted from ECE 315 lecture notes by Bruce Cockburn
+
+
+
+
+                                                                                                                       6
+Closed–loop Control
+• In closed-loop control, the motor state (position, speed, power, …) is directly
+  measured and returned to the controller to aid in motor control
+• The control algorithm is generally digital, which means that analogue signals
+  from the position or other sensor must be converted.
+• The control algorithm computes the difference between the desired position and
+  the actual position, then determines the best next step command(s)
+
+
+
+
+                                                                                                                     7
+                                                              Adapted from ECE 315 lecture notes by Bruce Cockburn
+
+
+
+
+                                                                                                                         7
+ Rotary Shaft Encoders
+
+ • An encoder can be attached to the end of the
+   motor shaft to detect steps
+ • Three popular methods are optical, magnetic,
+   and magneto-resistive
+
+
+
+
+                                                                         8
+
+
+
+
+https://www.portescap.com/en/products/accessories/workings-of-encoders
+
+https://anaheimautomation.com/blog/post/encoders-
+guide?srsltid=AfmBOopSN8QsEVUB5npwG74pPuTYLMUKplXT1z_QgFCU_BcXHBSQkx
+Uv
+
+
+
+
+                                                                             8
+ Rotary Shaft Encoders
+ • Optical encoders rely on a wheel
+   with slots and counting when
+   detected light changes
+ • Either pulses or varying
+   intensities indicate the position
+   using sine and cosine relations
+    • 90° phase shifted varying intensity
+      is shown in (a)
+ • A magneto-resistive uses a
+   bipolar magnet and sine-cosine
+   measurements to determine the
+   angle of rotation
+                                                                              9
+
+
+
+
+https://www.analog.com/en/resources/analog-dialogue/articles/how-to-design-
+motor-encoders-for-next-generation-sustainable-applications.html
+
+
+
+
+                                                                                  9
+Gray Code Optical Encoder
+                                                                                                          Position           Binary        Gray
+                                                                                                               0              0000         0000
+• An array of light sources can be used to uniquely                                                            1              0001         0001
+  detect shaft rotations using a binary code                                                                   2              0010         0011
+                                                                                                               3              0011         0010
+• A “Gray” code is one designed so that for each step                                                          4              0100         0110
+
+  only one bit changes                                                                                         5              0101         0111
+                                                                                                               6              0110         0101
+• This is makes it easy to                                                                                     7              0111         0100
+
+  detect errors and                                                                                            8
+                                                                                                               9
+                                                                                                                              1000
+                                                                                                                              1001
+                                                                                                                                           1100
+                                                                                                                                           1101
+  simplifies the digital                                                                                      10              1010         1111
+  logic                                                                                                       11              1011         1110
+                                                                                                              12              1100         1010
+                                                                                                              13              1101         1011
+                                                                                                              14              1110         1001
+                                                                                                              15              1111         1000
+                                                                                                                                            10
+                               https://www.linearmotiontips.com/when-is-encoder-resolution-specified-in-bits-and-what-does-that-tell-us/
+
+
+
+
+                                                                                                                                                  10
+Close-loop Control, again
+
+• Encoders provide
+  position information
+  that can be used in
+  the closed-loop,
+  feedback control
+  system
+
+
+
+
+                            11
+
+
+
+
+                                 11
+Servos, DC Motors
+
+                    12
+
+
+
+
+                         12
+Servos
+• A servo motor is an electromechanical actuator
+  designed for precise control of position,
+  velocity, or torque using closed-loop feedback.
+   • Used in radio-controlled aircraft to control the flight surfaces: rudder (yaw control), elevator
+     (pitch control), and ailerons (roll control).
+• Closed-loop control: A feedback device (typically a potentiometer or encoder)
+  continuously measures the output and compares it to a commanded setpoint.
+• Integrated or Component system: Usually consists of a motor (DC, AC, or
+  brushless), a gear train, a feedback sensor, and a control circuit.
+• Commanded motion: Moves to and holds a specific position or follows a trajectory,
+  correcting errors automatically.
+• High accuracy & repeatability: Well-suited for applications requiring precise motion
+
+                   https://www.instructables.com/Beginners-Guide-to-Connecting-Your-RC-Plane-Electr/   Adapted from ECE 315 lecture notes by Bruce Cockburn   13
+
+
+
+
+                                                                                                                                                                   13
+Servos cont’d
+• A widely used control interface for servos uses an analog signaling
+  method called pulse width modulation (PWM)
+  • Many microcontrollers have built-in PWM peripherals
+     • Zynq-7000 has 6 timers that can generate PWM signals at MIO pins
+     • RP2040 has up to 16 controllable PWM outputs
+• A train of positive pulses at a fixed rate, e.g., at 50 Hz
+• Pulses are fixed amplitude (e.g., 3 to 5 V)
+• Width is controlled to be within some range about a neutral width
+  (e.g., 1.5 ms +/- 0.5 ms).
+• The pulse width determines the angle of a rotor
+                                                                 Adapted from ECE 315 lecture notes by Bruce Cockburn   14
+
+
+
+
+                                                                                                                             14
+ Servos cont’d
+
+ Common forms
+ • RC/industrial servos
+    • Integrated motor and controller
+    • Accept a control signal (e.g., PWM) that specifies target position
+
+ • Servo drives + motors
+    • Separate motor and controller
+    • Used in CNC machines,
+      robotics, and automation
+
+
+                                                             Adapted from ECE 315 lecture notes by Bruce Cockburn   15
+
+
+
+
+https://www.designworldonline.com/400w-mac400-integrated-ac-servo-motor/
+
+https://www.solomotorcontrollers.com/blog/servo-
+motor/?srsltid=AfmBOooZsp4cU6FtqPx_hbmeTVFnIdS-j7b0AhTTts4779YWQ9n6rcIX
+
+https://anaheimautomation.com/blog/post/servo-motor-
+guide?srsltid=AfmBOop8jeNTpp2k_V2zx0vN8m6qJqzKkxntFCpX3rDRiK5yMu2xm4mQ
+
+https://www.candrian.gr/index.php/reverse-engineering-sewing-servo-motor-
+controller/
+
+
+
+
+                                                                                                                         15
+  Example – PWM Signal for Rotor Control
+• Min and max pulse width can vary for
+  different manufacturers
+   • Min can be 0.5 to 0.8 ms
+   • Max can be 2.5 to 3 ms
+• Frequency usually 50 Hz
+   • Can be 30 to 200 Hz
+• Voltage level can vary from
+  2.5V to 10V
+
+
+
+
+                                         https://fabacademy.org/2022/labs/bhutan/students/anith-ghalley/assignments/week13/ 16
+
+
+
+
+                                                                                                                                 16
+Brushed DC Motor
+• DC motors where current is provided to
+  the rotor coil via contacts on a
+  commutator are known as “brushed”
+• The motor is constructed so that when
+  current flows a field opposing the stator
+  (permanent) magnetic field is induced
+  which creates a torque that turns the
+  rotor
+• The split commutator ensures the
+  current is reversed every 180° so that
+  the rotation is continued
+
+                                              17
+
+
+
+
+                                                   17
+H-Bridge Control of a DC Motor
+
+• Similar to stepper motor control, an
+  H-bridge circuit can be used to
+  energize the coils of a DC motor
+
+
+
+
+                 https://www.modularcircuits.com/blog/articles/h-bridge-secrets/h-bridges-the-basics/
+                                                                                                        18
+
+
+
+
+                                                                                                             18
+H-Bridge Control of a DC Motor
+
+• Similar to stepper motor control, an
+  H-bridge circuit can be used to
+  energize the coils of a DC motor
+• With Q1 and Q4 turned on, Q2 and Q3
+  turned off, the motor will turn in one
+  direction
+
+
+
+
+                 https://www.modularcircuits.com/blog/articles/h-bridge-secrets/h-bridges-the-basics/
+                                                                                                        19
+
+
+
+
+                                                                                                             19
+H-Bridge Control of a DC Motor
+
+• Similar to stepper motor control, an
+  H-bridge circuit can be used to
+  energize the coils of a DC motor
+• With Q1 and Q4 turned off, Q2 and
+  Q3 turned on, the motor will turn in
+  one direction
+
+
+
+
+                 https://www.modularcircuits.com/blog/articles/h-bridge-secrets/h-bridges-the-basics/
+                                                                                                        20
+
+
+
+
+                                                                                                             20
+H-Bridge Control of a DC Motor
+• This circuit illustrates the forward
+  and reverse control via switch S1
+• Motor speed is accomplished via
+  pulse-width modulation (PWM)
+• As with stepper motors, an encoder
+  will help with closed-loop control of
+  the motor
+• Unlike the stepper, the motor
+  position cannot be simply held static
+
+
+
+                                                                                                          21
+                                          https://www.electronics-tutorials.ws/io/h-bridge-circuit.html
+
+
+
+
+                                                                                                               21
+ Brushless DC Motor
+
+ • A brushless DC motor eliminates the need
+   for a brushed commutator by inverting the
+   motor configuration
+ • Instead of the rotor having two or more
+   coiled arms, the stator has the coils
+ • The rotor is comprised of two or more
+   permanent magnets
+
+
+
+
+                                                                           22
+
+
+
+
+https://www.monolithicpower.com/en/learning/resources/brushless-vs-brushed-dc-
+motors?srsltid=AfmBOoqaqVwTXV10uVWPA0wujiOcmhWy3IQr-jryH9shzZirxt1f7Hux
+
+
+
+
+                                                                                 22
+Brushless DC Motor
+
+• The stator coils are typically connected
+  in a Delta or Wye configuration
+• The driving circuit is like an H-Bridge, but
+  has switches (transistors) through which
+  a PWM signal is applied to control the
+  motor speed
+
+
+
+
+                                                 23
+
+
+
+
+                                                      23
+Brushless DC Motor
+
+• Hall-effect sensors can
+  be embedded in the
+  motor housing to
+  provide position
+  information
+• This is used in a
+  closed-loop control
+  system
+
+
+
+                            24
+
+
+
+
+                                 24
+Other Actuators
+
+                  25
+
+
+
+
+                       25
+Other Actuators
+
+• In this course we restrict ourselves to electro-mechanical actuators
+  • We don’t consider hydraulic or pneumatic, for example
+
+
+• Linear Actuators
+• Mechanical or solid-state switches/relays
+• Solenoids
+
+
+
+
+                                                                         26
+
+
+
+
+                                                                              26
+Linear Actuator
+
+• Converts rotary motion into
+  straight-line, linear motion
+   • For rotary motion, we consider
+     only electric motors, but gas or
+     diesel can be used, for example.
+• Used to push, pull, lift, or
+  position loads with controlled
+  force, speed, and displacement
+  in electromechanical systems
+
+
+                                        27
+
+
+
+
+                                             27
+ Mechanical Switches/Relays
+ • A mechanical relay uses a magnetic coil
+   to change the state of a mechanical
+   electrical switch
+ • Typically, the relay has a configuration of
+   contacts to a common conductor that are
+   either normally-open or normally-closed
+ • This provides flexibility for the logic of the
+   switch
+ • The coil circuit is physically (electrically)
+   isolated from the switching circuit
+     • Means that the switching circuit can be high-
+       voltage and/or high-current
+
+                                                       28
+
+
+
+
+https://www.electronics-tutorials.ws/io/io_5.html
+
+
+
+
+                                                            28
+ Solid-state Switches/Relays
+ • Relay is constructed using
+   semiconductor-based devices
+ • Like the mechanical relay, the
+   control circuit is electrically isolated
+   from the switched circuit
+ • Solid-State Relay (SSR)
+ • In terms of mechanical stresses like
+   vibration, shock, and environmental
+   effects, SSRs are more robust than
+   mechanical relays
+                                                    29
+
+
+
+
+https://www.electronics-tutorials.ws/io/io_5.html
+
+
+
+
+                                                         29
+ Relay/Ladder Logic
+ Symbols
+ • We do not get to look at
+   relay/ladder logic in this course
+ • It is a whole sub-discipline and
+   most commonly associated with
+   process control in plants and
+   buildings
+
+
+
+
+                30
+
+
+
+
+https://automationforum.co/plc-learning-series-4-how-a-ladder-logic-diagram-works-
+how-to-read-ladder-logic/ladder-logic-simples/
+
+
+
+
+                                                                                     30
+ Relay/Ladder Logic
+ Symbols
+ • Common Boolean logic gates
+   can be represented using relay
+   logic symbols
+     • Normally-Open
+     • Normally-Closed
+     • Output Coil
+        • This can be anything that produces a
+          desired output, but for convenience
+          we refer to a coil that is energized
+
+
+
+
+                                                                               31
+
+
+
+
+https://automationforum.co/plc-learning-series-4-how-a-ladder-logic-diagram-works-
+how-to-read-ladder-logic/ladder-logic-simples/
+
+
+
+
+                                                                                     31
+Solenoid
+
+• An electro-mechanical device that uses an energized coil to create a
+  magnetic field, producing linear motion of a movable plunger
+• It converts electrical energy into short-stroke mechanical force for
+  actuation, switching, or control functions
+
+
+
+
+                                                                                                               Made with help from ChatGPT   32
+                    https://www.drsolenoid.com/news/what-is-a-solenoid-and-how-does-it-work-and-application/
+
+
+
+
+                                                                                                                                                  32
+Summary
+• Motion control systems may operate in open-loop (no feedback) or closed-loop
+  (sensor feedback) configurations, with trade-offs in complexity, accuracy, and
+  robustness
+• Rotary shaft encoders (optical, magnetic, magneto-resistive) provide position
+  information that enables precise closed-loop motor control
+• Servo motors integrate motors, feedback, and control electronics to achieve
+  accurate position control, commonly using PWM interfaces
+• Brushed and brushless DC motors are combined with H-bridge circuits to control
+  direction and speed via PWM
+• Other electro-mechanical actuators—including linear actuators, solenoids, and
+  mechanical or solid-state relays—extend embedded systems beyond rotary
+  motion and enable controlled mechanical and electrical switching
+                                                                   Made with help from ChatGPT   33
+
+
+
+
+                                                                                                      33
+Next Lecture
+
+• RP2040 Stepper Examples
+  • L298N H-Bridge
+  • A4988 Driver
+
+
+
+
+                            34
+
+
+
+
+                                 34
+Questions
+
+
+
+
+            35
+
+
+
+
+                 35
+

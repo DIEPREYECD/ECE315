@@ -1,0 +1,416 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 29 :
+• Analogue/Digital conversion
+• ADCs, DACs
+
+
+
+
+                                1
+Last Lecture
+
+• Interrupts and Events
+
+
+
+
+                          2
+
+
+
+
+                              2
+This Lecture
+
+• Analogue/Digital conversion
+• ADCs, DACs
+
+
+
+
+                                3
+
+
+
+
+                                    3
+ Learning Objectives
+• Distinguish between analogue and digital signals
+• Explain the motivations for analogue-to-digital and digital-to-analogue
+  conversion
+• Describe the fundamentals of sampling theory
+   • Apply the Nyquist–Shannon sampling theorem
+• Identify practical limitations of real ADC systems, including trade-offs
+  between
+   • sampling rate and resolution, quantization levels, noise, and
+   • embedded system constraints such as ADC speed, DMA bandwidth, & CPU load
+• Explain why anti-aliasing and reconstruction filters are needed
+
+                                                                             4
+
+
+
+
+                                                                                 4
+This is our main topic for until past Reading Week.
+
+
+
+
+                                                      5
+Why do we care about Analogue vs Digital?
+
+• The world is for practical purposes analogue in nature
+• Yes, there are analogue computers, but they are difficult to build and
+  even more difficult to program
+• Digital signal processing and by extension digital computers are so
+  much easier to deal with
+• Digital techniques, computing scales extraordinarily well, both in
+  capability and cost
+   • Many embedded systems are actually overkill in terms of what the
+     microprocessor could do versus what it is asked to do
+
+
+                                                                           6
+
+
+
+
+                                                                               6
+The wireless data signal, which is analogue between the transmitter and receiver,
+starts as digital signal at the transmitter, is converted to analogue and transmitted, is
+received and then converted to digital
+
+
+
+
+                                                                                            11
+Sampling Theory Refresher
+• Sampling converts a continuous-time signal x(t) into a discrete-time
+  sequence x[n]
+• Performed by measuring the signal at regular intervals:
+                                𝑥 𝑛 = 𝑥 𝑛𝑇!
+where
+                                                   "
+  • 𝑇! is the sample period in seconds, and 𝑓! =        is the sampling frequency (Hz)
+                                                   #!
+
+• Common examples:
+  • ADCs sampling sensor voltages
+  • Audio signals sampled at 44.1 kHz or 48 kHz
+
+                                                                         Made with help from ChatGPT   16
+
+
+
+
+                                                                                                            16
+Nyquist-Shannon Sampling Theorem
+• A band-limited signal with maximum frequency fmax can be perfectly
+  reconstructed if
+                                𝑓! ≥ 2𝑓"#$
+• If sampling is too slow aliasing occurs
+   • high-frequency components appear as lower frequencies (said to ”wrap”)
+• In practical applications, we need anti-aliasing filters that ensure
+                                 𝑓!
+                                    ≥ 𝑓"#$
+                                 2
+• Rule of thumb
+   • Sample at 2–10 times fmax for margin and filter roll-off
+• Special case is if a signal is bandlimited and bandpass in nature
+                    • Outside the scope of this course            Made with help from ChatGPT   17
+
+
+
+
+                                                                                                     17
+https://dataphysics.com/blog/dynamic-signal-analysis/dynamic-signal-analysis-review-part-3-aliasing/
+
+
+
+
+                                                                                                                                             To prevent aliasing need to
+                                                                                                                                             sample at 𝑓! ≥ 2 𝑓"#$ + ∆𝑓
+
+
+                                                                                                                           fmax + ∆f
+
+
+
+                                                                                                       These frequencies will be
+
+
+
+
+                                                                                                                                                                                       https://visionbook.mit.edu/sampling_and_aliasing.html
+                                                                                                        aliased (folded) into the
+                                                                                                             sampled signal
+
+
+
+
+                                                                                                                      18
+
+
+
+
+                                                                                              The top left figure shows the spectrum of a realistic, implementable anti-aliasing
+                                                                                              filter. There is significant frequency content greater than fmax that will be aliased,
+                                                                                              folded into the sampled signal. This distorts the desired signals.
+
+                                                                                              The answer is to over-sample, sample at more than twice the Nyquist frequency.
+
+
+
+
+                                                                                                                                                                                                                                               18
+Practical Considerations
+• Aliasing:
+   • Different continuous frequencies become indistinguishable after sampling
+   • Once aliased, information is irreversibly lost
+• Common mitigation strategies:
+   • Analogue low-pass (anti-alias) filtering
+   • Oversampling
+   • Digital decimation after filtering
+                                           • In embedded systems:
+                                                • Sampling rate often constrained by:
+                                                   • ADC speed
+                                                   • DMA bandwidth
+                                                   • CPU processing time
+                                                                           Made with help from ChatGPT   19
+
+
+
+
+                                                                                                              19
+Analogue-to-Digital Convertor (ADC)
+
+• An ADC takes an input analogue signal, samples it, and outputs the
+  samples as digital words
+
+
+
+
+                                                                         Parallel output (8-bits)
+• In general, the faster the ADC samples, the  Analogue
+                                               signal in
+  fewer the number of bit out                             ADC
+• An N-bit ADC can quantize the input signal
+  to 2N levels
+  • Usually, they represent values that are symmetric Analogue
+
+
+
+
+                                                                         Serial output (SPI)
+    about 0 volts                                      signal in
+                                                                   ADC
+  • If the maximum voltage swing is ±X volts, the
+    digital output range is approximately [-2N-1,2N-1] volts
+
+                                                                                                    20
+
+
+
+
+                                                                                                         20
+ Digital-to-Analogue Convertor (DAC)
+
+ • A DAC converts digital values to analogue signals
+ • In general, the faster the ADC samples, the
+
+
+
+
+                                                                                   Parallel input (8-bits)
+                                                                                                                   Analogue
+   fewer the number of input bits                                                                                  signal out
+ • The more input bits, the higher the fidelity of the                                                       DAC
+   output analogue signal
+ • Similar to the ADC, a filter is required for the
+                                                                                                                   Analogue
+   output signal
+
+
+
+
+                                                                                    Serial input (SPI)
+                                                                                                                   signal out
+                                                                                                             DAC
+
+
+                                                                                                                      21
+               https://dwellangle.wordpress.com/2008/05/21/quantization-in-adcs/
+
+
+
+
+The output of the DAC, exaggerated here for a 3-bit DAC, contains a lot of high
+frequency components
+
+
+
+
+                                                                                                                                21
+  Non-ideal DAC Operation
+
+
+
+
+       https://dwellangle.wordpress.com/2008/05/21/quantization-in-adcs/
+
+
+
+
+                                                                           https://www.analog.com/en/resources/technical-articles/equalizing-techniques-flatten-dac-frequency-response.html   22
+
+
+
+
+Ideally, the reconstructed signal is the original analogue signal multiplied by a
+sequence of delta functions. This leads to the spectrum of the original signal
+repeated every fs Hz.
+
+Two things about that; first, we can’t have a continuum of amplitudes, and second we
+can’t make a delta function.
+
+We approximate the desired signal by a discrete convolution with a narrow rectangle
+pulse.
+
+The result in the frequency domain is the multiplication of the fourier transform of
+the rectangle, a Sinc function, with the repeated spectrum.
+
+Similar to the aliased signal from the ADC operation, the output of the DAC will
+contain unwanted content from the repeated signals.
+
+We need to low-pass filter the signal, ideally a “brick wall” filter with cutoff of fs/2
+
+Multiplication in the time domain is the same as convolution in the frequency
+
+
+
+
+                                                                                                                                                                                                   22
+domain. We see this clearly in figure d) where the
+
+
+
+
+                                                     22
+ Non-ideal DAC Operation
+
+
+
+
+                                   https://www.analog.com/en/resources/technical-articles/equalizing-techniques-flatten-dac-frequency-response.html   23
+
+
+
+
+Here we see the practical signal processing chain with the lowpass “reconstruction”
+filter following the DAC
+
+
+
+
+                                                                                                                                                           23
+                                                                                 24
+
+
+
+
+This is a DAC that outputs a fixed sinusoid. The green plot is the time-domain
+waveform while the red plot is the log frequency spectrum. The fundamental
+frequency of about 50 Hz is easy to see.
+
+The output capacitor acts as a lowpass filter.
+
+
+
+
+                                                                                      24
+                                                                                 25
+
+
+
+
+This is a DAC that outputs a fixed sinusoid. The green plot is the time-domain
+waveform while the red plot is the log frequency spectrum. The fundamental
+frequency of about 50 Hz is easy to see.
+
+The output capacitor has been removed and we see the quantized time-domain
+signal. The spectrum now contains tons of extra frequencies, repeated every 50 Hz.
+
+Yuck!
+
+
+
+
+                                                                                      25
+ Analogue-to-Analogue processing
+
+
+
+
+                                                                            26
+                                  Illustration by Mark Wickert, PhD
+
+
+
+
+This diagram illustrates practical blocks for both ADC and DAC operations
+
+
+
+
+                                                                                 26
+Summary
+• The real world is inherently analogue, but digital systems dominate modern computing
+  due to their robustness, scalability, and ease of processing; ADCs and DACs are needed
+• Sampling theory describes how continuous-time signals are converted into discrete-time
+  sequences using a fixed sampling frequency
+• The Nyquist–Shannon sampling theorem defines the minimum sampling rate required to
+  avoid aliasing; insufficient sampling causes irreversible distortion of digital signals
+• Practical ADC systems employ band-limiting filters for input signal to reduce unwanted
+  aliased signals
+• Practical ADC systems involve trade-offs between sampling rate, resolution, noise, and
+  embedded constraints such as ADC speed, DMA bandwidth, and CPU capacity
+• DACs reconstruct analogue signals from digital values but introduce high-frequency
+  artifacts, making reconstruction filtering essential for producing clean analogue outputs
+
+                                                                                         27
+
+
+
+
+                                                                                              27
+Next Lecture
+
+• Motion control
+• Stepper and DC motors
+• HW controllers, H-bridge
+
+
+
+
+                             28
+
+
+
+
+                                  28
+Questions
+
+
+
+
+            https://xkcd.com/26/   29
+
+
+
+
+                                        29
+

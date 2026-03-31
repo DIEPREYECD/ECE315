@@ -1,0 +1,678 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 11 :
+• Computer Interfacing
+• Overview of some interfaces
+• Duplex
+• The nature of analogue and digital signals
+
+
+
+
+                                               1
+Last Lecture
+
+• Mutexes and Semaphore example
+• Synchronization
+• Priority Inversion
+• Deadlock
+
+
+
+
+                                  2
+
+
+
+
+                                      2
+This Lecture
+
+• Computer Interfacing
+• Overview of some interfaces
+• Duplex
+• The nature of analogue and digital signals
+
+
+
+
+                                               3
+
+
+
+
+                                                   3
+Learning Objectives
+
+• Understand that to be useful computers must interface with the
+  outside world
+• Recognize a few common computer interfaces, what is connected to
+  the computer
+• Know the difference between simplex, half– and full– duplex
+• Appreciate that all signals are analogue and some of what that
+  means in terms of using them for interfacing computers
+• Be able to say how DC offsets and noise might affect a signal
+• Describe a ground loop and its effects
+                                                                     4
+
+
+
+
+                                                                         4
+What is Computer Interfacing?
+
+• In this course we look at the low-level aspects of computer
+  interfacing; i.e. interfacing of embedded computers
+• It is very similar to what is done at higher-levels, non-embedded
+  computing systems, except that at that level there are more utilities,
+  more computational resources, and so on to help
+
+• Thus, computer interfacing is about connecting embedded systems
+  to external devices (sensors, actuators, computers).
+• Its purpose is to enable data exchange, control, and monitoring
+
+                                                                           5
+
+
+
+
+                                                                               5
+Which Interfaces?
+
+• Serial Interfaces: UART, SPI, I²C — short-range, low data rate.
+
+• Parallel Interfaces: Faster but use more pins (e.g., LCD data buses).
+
+• Memory interfaces: Serial and Parallel, direct memory access (DMA)
+
+• Wireless Interfaces: Bluetooth, Wi-Fi, Zigbee.
+
+
+
+
+                                                                          6
+
+
+
+
+                                                                              6
+Serial Interfaces
+• A serial interface is a communication mechanism that transfers data
+  one bit at a time over a single or a small set of communication lines,
+  typically between a microcontroller and a peripheral device such as a
+  sensor, display, or another microcontroller
+Key Characteristics
+  • Bit-by-bit transmission: Data is sent sequentially rather than in parallel (all bits
+    at once), which reduces the number of physical connections required.
+  • Clock synchronization: Synchronous interfaces use a shared clock signal,
+    while asynchronous interfaces rely on timing agreements between devices
+  • Directionality: Can be unidirectional (one-way) or bidirectional (two-way
+                                                                    communication)
+                                           Made with help from ChatGPT                 7
+
+
+
+
+                                                                                           7
+Common Serial Interfaces in Embedded Systems
+
+• UART (Universal Asynchronous Receiver/Transmitter):
+  • Asynchronous communication (no shared clock).
+  • Typically used for debugging or communication between
+    controllers and PCs.
+
+• SPI (Serial Peripheral Interface):
+  • Synchronous, full-duplex.
+  • Often used for fast communication with sensors or memory chips.
+
+
+                                                                  8
+
+
+
+
+                                                                      8
+Common Serial Interfaces in Embedded Systems
+
+• I²C (Inter-Integrated Circuit):
+  • Synchronous, half-duplex.
+  • Supports multiple masters and slaves on the same bus.
+
+• CAN (Controller Area Network):
+  • Used in automotive and industrial systems.
+  • Allows multiple microcontrollers to communicate without a central
+    host.
+
+
+                                                                    9
+
+
+
+
+                                                                        9
+What’s all this Duplex Stuff, Anyhow?
+
+• Refers to the direction and concurrency of data transmission
+• There are three common modes
+• Simplex – data travels in only one direction, ever
+• Half-Duplex – data travels in two directions, but never at the same time
+• Full-Duplex – data travels in two direction simultaneously
+
+
+
+
+                                                                       10
+
+
+
+
+                                                                             10
+                                                           One direction only
+                                                  A                             B
+ Simplex
+ Advantages                                                  Disadvantages
+ • Simplicity: simple to implement; data in only      • Lack of Bidirectional Communication: The
+   one direction                                        most significant disadvantage is the
+                                                        incapacity to send data back in the opposite
+ • Cost-Effective: hardware required (e.g., cables,
+                                                        way. This limitation makes it unsuitable for
+   connectors) can be less costly
+                                                        interactive communication.
+ • No Collision : data in only one direction, no risk
+   of data collision; communication is secure and     • Inefficient for Complex Tasks: not suitable for
+   consistent                                           tasks requiring response or acknowledgment
+ • Efficient Use for Specific Applications: Ideal     • Limited Flexibility: cannot be easily adjusted to
+                                                        situations needing bidirectional comms
+   for applications where only one-way
+   communication is necessary, such as                • Not Ideal for Modern Networks: Most
+   broadcasting, keyboard input to a computer, or       advanced communication systems require
+   sending data to a printer                            bidirectional data flow, making simplex mode
+                                                        largely antiquated in networking scenarios
+                             Made with help from ChatGPT                                               11
+
+
+
+
+Broadcast communications is an example where simplex is best, the only way to
+make it work by definition.
+
+However, broadcast is dying out because even though it’s more complex asymmetric
+full-duplex has significant advantages.
+
+
+
+
+                                                                                                            11
+                                                         A sends, B receives
+                                                A                              B
+
+Half-Duplex
+
+
+
+
+                                                                                    time
+                                                         B sends, A receives
+                                                A                              B
+
+Advantages                                                  Disadvantages
+• Efficient Use of Channel: bidirectional                   • Slower Data Transmission: data can only run in
+  communication over a single channel                         one direction at a time; communication is
+                                                              delayed compared to full-duplex systems
+• Cost-Effective: needs less complicated and
+  less costly hardware than full-duplex systems    • Increased Latency: The need for nodes to take
+                                                     turns introduces delay, which can affect
+• Simplified Collision Handling: only one device
+  can transmit at a time, complicated collision      performance in congestion applications
+  detection and management protocols not           • Not Ideal for High-Traffic Networks: In
+  needed                                             networks with congestion or requiring
+                                                     constant communication, half-duplex mode
+• Suitable for Periodic Communication: Optimal
+  when communication doesn’t need to happen          can become a restriction
+  concurrently in both directions, such as walkie- • Inefficient for Complex Communications:
+  talkies or specific network protocols.             When frequent two-way communication
+                                                     needed, it’s less effective as it forces devices
+                                                     to wait their turn, which can lead to pauses 12
+                           Made with help from ChatGPT
+
+
+
+
+                                                                                                               12
+                                                             Bi-directional simultaneously
+                                                    A                                        B
+  Full-Duplex
+  Advantages                                                   Disadvantages
+  • High-Speed Communication: Data transfer is                 • Complexity and Cost: Requires more
+    quicker because there is no delaying for the                 complicated hardware and can be more costly
+    channel to clear before sending or receiving                 than simplex or half-duplex systems.
+  • Reduced Latency: Communication is parallel,                • Requires Quality Infrastructure: Demands an
+    time lag is minimized, which is critical for real-           advanced quality of architecture, such as
+    time applications like web conferencing                      better cabling and more refined networking
+  • Better Utilization of Bandwidth: The maximum                 equipment, to avoid interference and assure
+                                                                 smooth data flow.
+    available transmission capacity is available
+
+
+
+
+                               Made with help from ChatGPT                                                     13
+
+
+
+
+In reality, the hardware costs for full-duplex systems is falling allowing it’s use in more
+situations. The convenience, low-latency, high-throughput make it very attractive.
+
+
+
+
+                                                                                                                    13
+The Nature of Signals in Interfaces
+
+• Like to think of our world as being digital…
+
+• Real world is always analogue, so we must deal with the nature and
+  limitations of analogue signals before we think of digital data
+
+• The aim is to detect information that is present in the analogue
+  domain.
+• To do this, we implement hardware and software to process the
+  signals.
+                                                                       14
+
+
+
+
+                                                                            14
+Analogue Signal Management and Processing
+
+1) Analog signal buffering, conditioning and filtering
+   • Use buffers/drivers to amplify signals & reduce output impedance
+   • Noise rejection filters, anti-aliasing filters prior to analogue-to-digital
+     conversion (A/D or ADC)
+
+
+2) Impedance matching to avoid unwanted signal “ringing” (oscillations)
+   • Avoid sudden changes in characteristic impedance of connections
+   • Use a parallel termination resistance at the far end of a wire
+   • Use a series termination resistance at the near end of a wire
+
+
+                                                    Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   15
+
+
+
+
+                                                                                                            15
+Analogue Signal Management and Processing
+
+3) Analog-to-digital (ADC) and digital-to-analog signal conversion (DAC)
+   • ADC – Analog inputs from sensors need to be filtered, sampled and converted
+     into digital form to permit digital signal processing (DSP)
+   • DAC – Digital outputs need to be converted into voltage or current signals to
+     control actuators, heaters, light sources, radio signals, etc.
+
+
+4) Digital signal level conversion and signal isolation
+   • Voltage level conversion (3v3 ➔ 5v), voltage-current conversion
+   • Optical isolation transceivers, isolation transformers
+
+
+                                               Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   16
+
+
+
+
+                                                                                                       16
+Digital Signal Management and Processing
+
+5) Digital modulation of an analog signal
+  • Digital signals must be encoded as analog signals of controlled bandwidth to
+    propagate well through the passband of a communication channel
+  • Modem = modulator (in transmitter) + demodulator (in receiver)
+
+6) Timing recovery, demodulation & decoding a modulated signal.
+  • Steps that are present in many digital communication receivers.
+  • Error-correcting codes are used to detect and correct digital errors.
+
+
+
+
+                                                Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   17
+
+
+
+
+                                                                                                        17
+Digital Signal Management and Processing
+
+7) Synchronization, framing, handshaking, error detection
+  • Start (for synchronization) and stop bits (for spacing) in RS-232C
+  • Request-to-send and clear-to-send handshaking (for flow control)
+  • Parity bit (or checksum) generation at the transmitter
+  • Parity bit (or checksum) re-generation & checking at the receiver.
+  • One parity bit permits the detection of an odd number of bit errors.
+8) Data buffering and flow control to handle rate fluctuations
+  • Temporary storage in buffers inside transmitters and receivers
+  • A buffer accommodates short-term data rate fluctuations, but flow control is
+    required to handle longer-term mismatches in data rates.
+
+                                                Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   18
+
+
+
+
+                                                                                                        18
+Unbalanced (or Single-ended) Digital Signalling
+• A single-ended signal comprises two wires, one that carries the
+  signal, the other that is the reference for the signal
+  • Usually, the second wire is set to or defined as ground
+• Advantages: The reference wire can be shared for multiple signals.
+• Disadvantages: Noise added to the signal and/or the ground
+  reference (e.g., ground loop noise) can cause
+  bit errors at the receiver
+
+
+
+
+               Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   19
+
+
+
+
+                                                                       19
+Noise Margin in Digital Signaling
+• Noise Margin is the maximum noise voltage that a digital circuit can
+
+
+
+
+                                                                                                                                                            https://www.sciencedirect.com/topics/computer-science/noise-margin
+  tolerate without misinterpreting a logic level.
+• It measures the robustness of digital signals against electrical noise
+  and voltage fluctuations.                                                    Transmitter                                   Receiver
+
+ Parameter Description
+                                                                                                       VDD
+ VOH        Min output voltage recognized as logic 1            Logic high
+                                                                                                                                        Logic high
+                                                                output range
+                                                                                                                                        output range
+ VOL        Max output voltage recognized as logic 0                                         VOH min
+                                                                                                                   VIH min
+ VIH        Min input voltage guaranteed to be logic 1                                                                                  Indeterminate
+                                                                                                                                        region
+ VIL        Max input voltage guaranteed to be logic 0
+                                                                                                                   VIL max
+ NMH        Noise Margin for high signal                                                     VOL max                                    Logic low
+                                                                Logic low
+ NML        Noise Margin for low signal                         output range
+                                                                                                                                        output range
+
+                                                                                                       GND
+
+
+                         NMH = |VOHmin – VIHmin|         NML = |VILmax – VOLmax|                        Made with help from ChatGPT                    20
+
+
+
+
+                                                                                                                                                                                                                                 20
+Noise Margin in Digital Signaling
+
+
+
+
+                                                                        https://www.sciencedirect.com/topics/computer-science/noise-margin
+                 Noise-Margin Measures (V, volts)
+   Technology    VDD       VOH       VIH       VTH   VIL    VOL
+   5 V CMOS      5         5.0       4.44      2.5   1.5    0.5
+   5 V TTL       5         5.0       2.4       1.5   0.8    0.4
+   3.3 V LVTTL   3.3       3.3       2.4       1.5   0.8    0.4
+   2.5 V CMOS    2.5       2.5       2.0       1.2   0.7    0.4
+   1.8 V CMOS    1.8       1.8       1.45      0.9   0.65   0.45
+
+
+                                                                   21
+
+
+
+
+                                                                                                                                             21
+Balanced (or Differential) Digital Signaling
+• Two wires – no ground (GND) is needed
+• The transmitter sends two signals; V+ and the inverse signal, V—
+                                    V— = V+
+• The receiver subtracts the two to recover the single-ended signal
+• If V+ and V— are corrupted by common-mode additive noise, Vnoise,
+  then the noise is cancelled out by subtraction:
+                (V+ + Vnoise) – (V— + Vnoise) = V+ — V— = 2 V+
+
+Advantage: Common-mode noise is cancelled at a differential receiver.
+
+                                         Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   22
+
+
+
+
+                                                                                                 22
+Balanced (or Differential) Digital Signaling
+• Typical sources of additive noise: nearby signals, changing electric &
+  magnetic fields produced by power supplies, motors, transformers, etc.
+• The noise rejection is even more effective if the wires are twisted
+  because this increases the chance that noise is more equally induced
+  on both wires of a pair.
+
+
+
+
+                                         Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   23
+
+
+
+
+                                                                                                 23
+Unwanted Signals Across Systems
+• Noise, DC offsets, cross-talk (strong signals are coupled into circuits)
+  can wreak havoc with digital (and audio systems)
+• DC Offset: A constant voltage ( ± ) added to a signal, shifting its
+  baseline away from zero.
+   • Caused by ground loops, sensor bias, or mismatched circuits.
+   • Leads to distortion, reduced dynamic range, and inaccurate measurements.
+• Noise: Random, unwanted variations superimposed on a signal.
+   • Sources include power supply ripple, electromagnetic interference (EMI), and
+     digital switching.
+   • Can obscure weak signals and reduce signal-to-noise ratio (SNR).
+
+                                                         Made with help from ChatGPT   24
+
+
+
+
+                                                                                            24
+Effects of DC Offsets and Noise
+
+• Measurement Errors: DC offsets bias analog-to-digital converters
+  (ADCs), leading to incorrect readings.
+• Signal Distortion: Noise and offsets alter waveform integrity,
+  especially in audio and sensor systems.
+• Ground Loop Problems: Differences in ground potential introduce hum
+  or DC currents through shared grounds.
+• System Instability: Feedback systems can behave unpredictably if
+  offsets or noise corrupt reference signals.
+
+                                                   Made with help from ChatGPT   25
+
+
+
+
+                                                                                      25
+ Effects of Noise and Cross-talk
+
+
+
+ Noisy SPI chip
+ select signal
+
+
+
+
+                                                                                   26
+
+
+
+
+From a student project that was fixed and ended up going to space and doing very
+well.
+
+
+
+
+                                                                                        26
+  Effects of Noise and Cross-talk
+
+
+
+ Noisy SPI chip
+ select signal and
+ data signal
+
+
+
+
+                                                                                    27
+
+
+
+
+The green is the data signal is very noisy, which was a result of having the analogue
+and digital grounds all mixed together.
+
+
+
+
+                                                                                         27
+Noise and Unwanted Signals Across Ground Planes
+
+• This is a circuit-level problem and a
+  result of mixing analogue and digital
+  grounds
+• The solution is to have all the digital
+  circuits ground to a common plane,
+  all the analogue circuits ground to a
+  different common plane, and have
+  the two plans connected at only one
+  point
+   • Sometimes called a “star ground”
+                                            pantarhei (https://electronics.stackexchange.com/users/203112/pantarhei),
+                                            Separate grounding for analog and digital portions of circuitry,
+                                            URL (version: 2020-06-17): https://electronics.stackexchange.com/q/506021   28
+
+
+
+
+                                                                                                                             28
+Noise and Unwanted Signals Across Ground Planes
+• The common point does not have to be small, restricted
+• Careful layout of circuits can achieve the same result
+  • The “star” connection is just bigger
+
+
+
+
+                                                                                                                             29
+                        https://resources.altium.com/p/how-to-use-a-star-point-for-analog-ground-digital-ground-connection
+
+
+
+
+                                                                                                                                  29
+  Ground Loops
+  • Systems that are physically far
+    apart may have grounds that are
+    at different potentials with
+    respect to each other.
+  • When connected by a wire, a
+    current will flow and signals at
+    either end will have different
+    references, i.e., there will be a
+    DC offset
+  • Chassis grounds are at different
+    potentials
+                                                 https://blog.lakeshore.com/avoiding-ground-loops-in-electronic-device-measurements   30
+
+
+
+
+These systems are not really all that far apart, yet there can be a ground potential
+difference.
+
+I have seen this in a capstone lab between work benches.
+
+That case may have been due to poor wiring, there being bad connectors that result
+in relatively high resistance. Then, according to Ohm’s Law, we will see a voltage
+across that resistance that will make the supposed 0V reference non-zero.
+
+
+
+
+                                                                                                                                           30
+   Electrical Isolation Between Systems
+         Goal:      Break electrical connection to eliminate DC paths while
+                    maintaining signal transmission.
+Opto-Isolation (Optocouplers):                                                                     Transformer Isolation:
+• Converts electrical signal to light and back to electricity.                                     • Transfers energy via magnetic coupling.
+• Provides galvanic isolation, preventing DC offset transfer.                                      • Blocks DC and low-frequency noise.
+• Common in digital signal transmission and control circuits.                                      • Used in power supplies and analog signal paths.
+
+
+
+
+        Input                                              Output
+
+
+
+
+                    By Riflemann~commonswiki - Own work, CC BY-SA 3.0,        Hddharvey, CC BY-SA 4.0 <https://creativecommons.org/licenses/by-sa/4.0>,
+                    https://commons.wikimedia.org/w/index.php?curid=1545090   via Wikimedia Commons                                                       Made with help from ChatGPT 31
+
+
+
+
+The solution is to break that current loop, which can be done using opto-isolation or
+transformer isolation.
+
+
+
+
+                                                                                                                                                                                           31
+Next Lecture
+
+• Serial Interfacing
+• UART
+• RS-232C, RS-422, RS-485
+
+
+
+
+                            32
+
+
+
+
+                                 32
+Questions
+
+
+
+
+            33
+
+
+
+
+                 33
+

@@ -1,0 +1,649 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 14 :
+• Ethernet LAN
+• CAN
+• USB
+
+
+
+
+                            1
+Last Lecture
+
+• Hardware Abstraction Layer – HAL
+• RP2040 UART Example
+
+
+
+
+                                     2
+
+
+
+
+                                         2
+This Lecture
+
+• More Serial…
+• Ethernet LAN
+• CAN
+• USB
+
+
+
+
+                 3
+
+
+
+
+                     3
+Learning Objectives
+• Understand Ethernet’s history, frame structure, data rates, and
+  transmission media.
+• Describe how Ethernet implements CSMA/CD (Carrier Sense Multiple
+  Access with Collision Detection).
+• Identify where Ethernet fits within the OSI networking model (Layers 1
+  and 2).
+• Describe the Controller Area Network (CAN) protocol
+• Explain its architecture, frame structure, and arbitration mechanism.
+• Discuss how CAN ensures reliable, deterministic communication
+  between multiple nodes on a shared bus.
+                                                                       4
+
+
+
+
+                                                                           4
+Learning Objectives
+• Recognize typical CAN applications (automotive, industrial, satellite).
+• Describe the Universal Serial Bus (USB) standard
+• Understand USB’s host-device architecture, topologies, and device
+  identification.
+• Explain USB frame structures, data transfer types (control, bulk,
+  interrupt, isochronous), and speed evolution (1.0 → 3.x).
+• Compare and contrast these three serial communication standards
+• Evaluate differences in physical signaling, data rates, topology, and
+  communication roles (bus, star, tree, mesh).
+
+                                                                            5
+
+
+
+
+                                                                                5
+Ethernet – History
+• Developed at Xerox PARC (1973)
+                                                                                        http://wireless.ictp.it/school_2001/labo/cabling/THICK.HTM
+
+• Inspired by ALOHA network
+• Standardized as IEEE 802.3 (1983); used widely
+• Initially 10 Mbps over coax (10BASE-5)
+• Only one transmitter station can transmit at a time.
+• If two (or more) transmitters happen to start transmitting
+  at the same time, then the resulting “collision” is detected
+  by those transmitters.
+• After a collision, transmitters wait for a random back-off
+  time before trying to transmit again (ALOHA protocol)
+                                                                                                 By Robert.Harker at English Wikipedia, CC BY-SA 2.5,
+                                                                                                 https://commons.wikimedia.org/w/index.php?curid=9891521
+
+
+              Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   Made with help from ChatGPT                                                   6
+
+
+
+
+                                                                                                                                                           6
+Ethernet Evolution
+• Ethernet speeds have steadily increased over the years
+• Result of improved electronics and signal processing
+• Still very much a           Standard   Speed     Medium                     Notes
+  viable and popular          10BASE-T   10 Mbps   UTP Cat3                   Legacy
+  medium                      100BASE-TX 100 Mbps  UTP Cat5                   “Fast Ethernet”
+• Faster than wireless        1000BASE-T 1 Gbps    Cat5e/Cat6                 Common today
+                              10GBASE-T  10 Gbps   Cat6a                      Data centers
+• Spatial multiplexing
+                                 40G/100G       Multi-lane
+   • WiFi channels limited                                         Backbone
+                                 Ethernet       fiber
+   • Physical wires can occupy                                     Wi-Fi AP
+     the same space              2.5G/5GBASE-T Intermediate
+                                                                   backhaul
+
+                                              Made with help from ChatGPT                    7
+
+
+
+
+                                                                                                 7
+ OSI Model – the 7 Layers
+• The OSI (Open Systems Interconnection) model defines how network
+  systems communicate.
+• Developed by ISO to promote interoperability among network devices.
+• Seven (7) layers, each responsible for specific communication functions
+
+1.   Physical – Transmission of raw bits (signals, cables)
+2.   Data Link – Framing, MAC addressing, error detection
+3.   Network – Routing and IP addressing
+4.   Transport – Reliable delivery (TCP, UDP)
+5.   Session – Manages connections between devices
+6.   Presentation – Data format translation (encryption, compression)
+7.   Application – User-level protocols (HTTP, SMTP, DNS)
+
+                                                "File:Osi-model-7-layers.png." Wikimedia Commons. 1 Oct 2021, 03:50 UTC.
+                  Made with help from ChatGPT   <https://commons.wikimedia.org/w/index.php?title=File:Osi-model-7-layers.png&oldid=594764917> 12 Nov 2025, 02:17.
+                                                                                                                                                                  8
+
+
+
+
+                                                                                                                                                                      8
+OSI Model – the 7 Layers
+1.   Physical – Transmission of raw bits (signals, cables)
+2.   Data Link – Framing, MAC addressing, error detection
+3.   Network – Routing and IP addressing
+4.   Transport – Reliable delivery (TCP, UDP)
+5.   Session – Manages connections between devices
+6.   Presentation – Data format translation (encryption, compression)
+7.   Application – User-level protocols (HTTP, SMTP, DNS)
+Ethernet operates at Layer 1 (Physical) and Layer 2 (Data Link)
+• Provides frame formatting, MAC addressing, and error detection
+  using cyclic redundancy check (CRC)
+• Medium access control (MAC) using CSMA/CD in legacy versions
+• Defines cabling standards and data rates
+  (e.g., Cat5e, fiber, 1 Gbps, 10 Gbps).
+                                               "File:Osi-model-7-layers.png." Wikimedia Commons. 1 Oct 2021, 03:50 UTC.
+                 Made with help from ChatGPT   <https://commons.wikimedia.org/w/index.php?title=File:Osi-model-7-layers.png&oldid=594764917> 12 Nov 2025, 02:17.
+                                                                                                                                                                 9
+
+
+
+
+                                                                                                                                                                     9
+Ethernet Frame Format
+• Preamble: 7 bytes (56 bits) of alternating 0s and 1s for synchronization
+• Start Frame Delimiter (SFD): 1 byte = 0b10101011
+• Destination Address (DA): 6 bytes specifying the destination station
+   • An example address, given in hex, is: 07-01-02-01-2C-4B
+• Source Address (SA): 6 bytes specifying the source station
+• Length / Type: 2 bytes; called the EtherType in recent standards.
+   • If <1518, then this field specifies the length of the data field
+   • If >1536 (0x600), then this field specifies the upper layer LAN protocol
+• Data: Anywhere from 46 to 1500 bytes of data
+• Frame Check Sequence (FCS): 4 bytes computed using CRC-32
+                       Preamble         SFD         DA             SA    Type       Data        FCS
+                         7 bytes       1 byte 6 bytes         6 bytes   2 bytes   46 to 1500   4 bytes
+                                                                                                      10
+                Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+
+
+
+                                                                                                           10
+Ethernet Data Rates and Transmission Media
+• Ethernet is available for several different data rates (10, 100, 1000, 10000 Mbps,
+  etc.) and a variety of media:
+   • RG-8 thick 50-Ω coaxial cable, for 10-Mbps (10BASE5, the original Ethernet standard). Now
+     obsolete.
+   • RG-58 “thin” 50-Ω coaxial cable, for 10-Mbps (10BASE2).
+   Coax cables have been replaced by point-to-point twisted pair links.
+   • CAT-3 twisted pair, for 10-Mbps (10BASE-T)
+   • CAT-5e twisted pair, for both 100-Mbps (100BASE-TX, a.k.a. Fast
+     Ethernet) and 1-Gbps (1000BASE-T or 1GBASE-T)
+   • CAT-6a, for 10-Gbps (10GBASE-T)
+   • CAT-7, intended for 10-Gbps, but CAT-6a is now used instead
+   • CAT-8, for short range (5 to 30m) at 25 or 40 Gbps
+   • Optical fibre, for 100-Mbps (100BASE-FX), 1-Gbps (1000BASE-SX),10-Gbps (10GBASE-LX4),
+     40-Gbps (40GBASE-SR4), etc.
+
+                                                                                                 11
+               Adapted from ECE 315 W2025 by Dr. Bruce Cockburn
+
+
+
+
+                                                                                                      11
+RJ45 Connectors – Type A and B
+
+
+
+
+        • Straight patch cables are A⬌A or B⬌B
+        • Crossover cables are A⬌B or B⬌A
+                  Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   12
+
+
+
+
+                                                                          12
+Straight-
+through and
+Crossover
+Ethernet Cables
+
+
+
+
+                  Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   13
+
+
+
+
+                                                                          13
+CSMA/CD and Media Access
+
+• Carrier Sense Multiple Access with
+  Collision Detection (CSMA/CD)
+• Nodes listen before transmitting
+• If collision → corrupt signals → random
+  backoff (Binary Exponential Backoff)
+• Used in half-duplex hubs; not used in full-
+  duplex switched Ethernet
+
+
+
+                                                                                                              14
+                                                https://www.ionos.ca/digitalguide/server/know-how/ethernet/
+
+
+
+
+                                                                                                                   14
+ CSMA/CD and Media Access
+
+ • Carrier Sense Multiple Access with
+   Collision Detection (CSMA/CD)
+ • Nodes listen before transmitting
+ • If collision → corrupt signals → random
+   backoff (Binary Exponential Backoff)
+ • Used in half-duplex hubs; not used in full-
+   duplex switched Ethernet
+
+
+
+                                                                                                                 15
+                                                   https://www.ionos.ca/digitalguide/server/know-how/ethernet/
+
+
+
+
+This is the key to making Ethernet work.
+
+Note, we have Collision Detection, not avoidance
+
+
+
+
+                                                                                                                      15
+ Ethernet Topologies – Bus (Legacy)
+ • Used in: Early Ethernet (10BASE5 “Thicknet” and 10BASE2 “Thinnet”)
+ • All nodes connect to a single coaxial cable (the “bus”)
+ • Each node listens for transmissions and shares the same medium
+ • Collisions can occur if two nodes transmit simultaneously — handled
+   by CSMA/CD
+ Advantages:                          Disadvantages:
+ • Simple and inexpensive             • Collisions reduce performance.
+   for small setups.                  • A single cable fault brings down the
+ • Minimal cabling.                     entire network.
+                                      • Difficult to troubleshoot and scale.
+
+                                                     Made with help from ChatGPT   16
+
+
+
+
+https://whatsincomputer.blogspot.com/2010/08/types-of-network-
+topologies.html
+
+
+
+
+                                                                                        16
+ Ethernet Topologies – Star (Modern)
+ • Used in: 10BASE-T, 100BASE-TX, 1000BASE-T, etc.
+ • Each device connects via a dedicated twisted-pair cable to a central
+   switch or hub.
+ • The central device manages data forwarding between nodes.
+ • No collisions in full-duplex switched systems.
+Advantages:                                         Disadvantages:
+• High reliability — if one link fails,             • Requires more cabling.
+  others remain unaffected.                         • Central switch is a single
+• Easier troubleshooting and                          point of failure.
+  scalability.
+• Supports higher data rates.
+                                                        Made with help from ChatGPT   17
+
+
+
+
+https://en.wikipedia.org/w/index.php?title=Star_network&oldid=1315583823
+
+
+
+
+                                                                                           17
+ Ethernet Topologies – Extended Star / Tree
+ • Used in: Large LANs and enterprise networks
+ • Combines multiple star networks via interconnected switches or hubs.
+ • Each branch or layer forms part of a hierarchical tree.
+
+
+Advantages:                                     Disadvantages:
+• Scalable for large                            • Switch hierarchy increases
+  organizations.                                  cost and complexity.
+• Structured for easier                         • Still depends on central
+  management.                                     backbone stability.
+
+                                                      Made with help from ChatGPT   18
+
+
+
+
+https://www.cybb0rg.com/2024/05/18/network-topologies-explained/
+
+
+
+
+                                                                                         18
+ Ethernet Topologies – Ring (rare)
+• Used in: Some legacy Ethernet or industrial
+  systems with redundancy (via protocols like
+  Ethernet Ring Protection Switching).
+• Nodes connected in a closed loop — each node
+  connected to two others.
+• Typically used to provide redundant paths for
+  fault tolerance.
+• Managed by spanning tree or rapid ring
+  recovery protocols.
+
+
+                                                      Made with help from ChatGPT   19
+
+
+
+
+https://www.cybb0rg.com/2024/05/18/network-topologies-explained/
+
+
+
+
+                                                                                         19
+ Ethernet Topologies – Mesh (High-Availability Networks)
+ • Used in: Data centers and industrial control systems requiring high
+   reliability.
+ • Each node connects to multiple others, providing redundant paths.
+ • Ensures connectivity even if several links fail.
+  Advantages:                                       Disadvantages:
+  • Excellent fault                                 • Expensive and
+    tolerance.                                        complex cabling.
+  • Load balancing                                  • Requires advanced
+    possible across                                   routing/switching
+    multiple paths.                                   management.
+
+                                                      Made with help from ChatGPT   20
+
+
+
+
+https://www.cybb0rg.com/2024/05/18/network-topologies-explained/
+
+
+
+
+                                                                                         20
+Controller Area Network - CAN
+• Mainly used in automotive applications, also within satellite systems
+• Developed by Bosch (1983) for automotive electronics
+• Replaced point-to-point wiring between Electronic Control Units (ECUs)
+• Enables real-time, reliable multi-master comms over a shared bus
+Features
+  • Multi-master, message-oriented protocol
+  • Deterministic, priority-based arbitration
+  • High noise immunity and fault tolerance
+  • Error detection and confinement
+  • Speeds up to 1 Mbps (CAN), 5–8 Mbps (CAN FD)
+                   Made with help from ChatGPT   https://canlogger1000.csselectronics.com/img/ecu-electronic-control-unit-can-bus-node.svg   21
+
+
+
+
+                                                                                                                                                  21
+CAN Bus Architecture
+• Two-wire differential signaling: CAN_H and CAN_L
+• All nodes share the same bus
+• Each node: MCU + CAN
+  controller + transceiver
+
+
+
+
+              Made with help from ChatGPT   https://esd.eu/fileadmin/_processed_/1/5/csm_can-verdrahtung_beispiel_2-leitungen_en_23_cc85e72226.png   22
+
+
+
+
+                                                                                                                                                          22
+ CAN Frame Structure
+• Start of Frame (SOF)
+• Identifier (ID): 11-bit (standard) or 29-bit (extended)
+• Remote Transmission Request (RTR)
+• Control: data length
+• Data field: 0–8 bytes (up to 64 bytes in CAN FD)
+• CRC ensures data integrity
+• Acknowledgement (ACK)
+• End of Frame (EOF)
+
+
+
+
+                             https://canlogger1000.csselectronics.com/img/CAN-bus-frame-standard-message-SOF-ID-RTR-Control-Data-CRC-ACK-EOF.svg   23
+
+
+
+
+                                                                                                                                                        23
+CAN Bus Arbitration
+
+An analogy to keep in mind;
+• It’s like a group of people politely speaking in turns — each one
+  listens while talking, and if someone more important (lower ID) starts
+  speaking, others stop immediately and try again later, ensuring order
+  without confusion
+
+
+
+
+                                                        Made with help from ChatGPT   24
+
+
+
+
+                                                                                           24
+CAN Bus Arbitration
+
+• Every CAN message has an identifier field (11 bits in Classical CAN,
+  29 bits in Extended CAN).
+  • The lower the identifier value, the higher the priority
+  • Example: ID 0x100 has higher priority than 0x200
+• CAN uses differential signaling
+  • Dominant bit (logical 0): actively drives CAN_H high and CAN_L low
+  • Recessive bit (logical 1): bus floats — if any node drives a dominant bit, it
+    overrides recessive
+• If one node sends ‘0’ and another sends ‘1’ simultaneously, the bus
+  reads as ‘0’ (dominant).
+                                                                  Made with help from ChatGPT   25
+
+
+
+
+                                                                                                     25
+CAN Bus Arbitration
+Bitwise Arbitration Process
+• All nodes monitor the bus while transmitting
+• As soon as a node detects that the bit level on the bus doesn’t match
+  what it sent, it knows it lost arbitration and stops transmitting
+• The winning node continues uninterrupted
+• For example, two nodes A @0x100 and B @0x200
+
+Bit Position   Node A (ID=0x100)   Node B (ID=0x200)   Bus Result         Winner
+1              0                   0                   0                  both
+2              0                   1                   0                  A continues, B loses
+
+                                                                    Made with help from ChatGPT   26
+
+
+
+
+                                                                                                       26
+Universal Serial Bus – USB
+
+• Developed in the mid-1990s by Intel, Microsoft, IBM, and others
+• Replaced multiple legacy ports (serial, parallel, PS/2)
+• Goal: Plug and Play, Hot Swappable, Universal Connector
+• USB 1.0 released in January 1996
+  • 4 wires (ground, power, differential data pair)
+  • Only the 1.5 Mbits/s rate was supported (e.g., keyboard, mouse)
+• USB 1.1 released in September 1998
+  • Updated standard corrected several flaws in USB 1.0.
+
+
+                                                             Made with help from ChatGPT   27
+
+
+
+
+                                                                                                27
+Universal Serial Bus – USB
+
+• USB 2.0 released in April 2000
+  • Medium (12 Mbit/s) and high speed (480 Mbits/s) added.
+  • Backward compatible with USB 1.1.
+  • Medium and high speed operation requires shielded cable.
+• USB 3.0 released in November 2008
+  • SuperSpeed mode (3.2 Gbit/s) added.
+  • Adds a shield and two more differential data pairs.
+  • Data signaling uses advanced techniques similar to PCIe.
+  • New power modes added (idle, sleep, suspend).
+
+
+                                                               Made with help from ChatGPT   28
+
+
+
+
+                                                                                                  28
+ USB – Key Features
+                                                                                            Host
+• Host-controlled communication model                                                      Root Hub
+
+  • Only one, typically a PC                                            Device
+                                                                                                         Device
+• Tiered star topology with hubs
+• Supports multiple device classes (HID,                                    Hub
+  Mass Storage, Audio, etc.)                                                                       Hub
+• End devices are things like a keyboard,                                         Device
+                                                                                                            Device
+  mouse, scanner, web-cam, disk, etc.                                   Device
+                                                                                                   Device
+• Plug-and-play configuration via descriptors                           Compound Device
+
+
+
+                     Adapted from ECE 315 W2025 by Dr. Bruce Cockburn                                         29
+
+
+
+
+                                                                                                                     29
+USB – Device Identification
+• Addressing scheme lets the USB host keep track of and
+  communicate with USB devices
+• Each USB device is associated with following information:
+   • Vendor Identifier (2 bytes)
+   • Device Identifier (2 bytes)
+   • Version Number (2 bytes)
+   • Class Code (3 bytes)
+• During initialization, the USB host does the following:
+   • Obtains the full address of each USB device
+   • Determines required data bandwidth and data types
+   • Assigns to each USB a unique 7-bit address
+                    Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   30
+
+
+
+
+                                                                            30
+USB Frame Structure                                           | SYNC | PID | ADDR | ENDP | CRC | DATA | CRC | EOP |
+
+• SYNC: 8-bit (low speed) or 32-bit (high speed)
+  synchronization pattern                                       Token Packet
+                                                                SYNC PID ADDR                       ENDP CRC5   EOP
+• PID: packet ID (token, data, handshake, special)
+• ADDR : device address; 7-bits, but 0x00 not used
+                                                                Data Packet
+   • Therefore, can address 127 devices                         SYNC PID Data 8-1024 B CRC16                    EOP
+• ENDP: endpoint, a buffer on a device
+   • 4-bits, allowing 16 possible endpoints
+                                                                Handshake Packet
+• CRC: cyclic redundancy check sum calculated                   SYNC PID EOP
+  over the data
+   • Devices receiving the packet can calculate a local CRC
+                                                                Start of Frame Packet
+     and compare with the transmitted CRC
+                                                                SYNC PID Frame Number CRC5                      EOP
+• EOP: end of packet designator
+                                                          https://www.beyondlogic.org/usbnutshell/usb3.shtml     31
+
+
+
+
+                                                                                                                      31
+USB Transfer Modes
+
+• Token-based protocol — Host sends tokens, devices respond
+• Transfer modes:
+  • Control: configuration & commands
+     • Initialization of new devices, status queries, etc.
+  • Bulk: large data (e.g., file transfer)
+     • Asynchronous, high jitter and latency possible
+  • Interrupt: small, time-sensitive data (e.g., mouse)
+     • Low latency
+  • Isochronous: real-time streaming (e.g., audio/video)
+     • Low jitter, moderate latency
+
+
+                     Adapted from ECE 315 W2025 by Dr. Bruce Cockburn   Made with help from ChatGPT   32
+
+
+
+
+                                                                                                           32
+Next Lecture
+
+• Serial Peripheral Interface – SPI
+
+
+
+
+                                      33
+
+
+
+
+                                           33
+Questions
+
+
+
+
+            34
+
+
+
+
+                 34
+

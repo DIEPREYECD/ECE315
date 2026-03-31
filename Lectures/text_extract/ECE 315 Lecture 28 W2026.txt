@@ -1,0 +1,655 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 28 :
+• Interrupts and Events
+
+
+
+
+                            1
+Last Lecture
+
+• Using DMA to capture real world data
+
+
+
+
+                                         2
+
+
+
+
+                                             2
+This Lecture
+
+• Interrupts and Events
+
+
+
+
+                          3
+
+
+
+
+                              3
+Learning Objectives
+
+• Explain the role of interrupts in real-time embedded systems
+• Differentiate between FreeRTOS tasks, events, and interrupts,
+• Describe the structure and purpose of Interrupt Service Routines (ISRs)
+  • How interrupts suspend normal task execution and transfer control to an ISR
+• Identify common hardware sources of interrupts
+• Explain why ISRs must be kept short and non-blocking
+• Determine when interrupts should and should not be used
+• Define FreeRTOS events and event groups
+
+                                                                                  4
+
+
+
+
+                                                                                      4
+RTOS and Events
+
+• We’ve seen that an RTOS is a specialized kind of operating system,
+  meant for embedded applications where what matters is
+  • Exact timing
+  • Latency, aka responsiveness
+  • Performance
+  • Dealing with constrained resources
+  • Cost
+• Of course, performance always matters
+• From lecture 4 we have a layered model for an RTOS (aka “onion”)
+
+                                                                       5
+
+
+
+
+                                                                           5
+ Layer Model of an OS (Lecture 4)
+ • Scheduler coordinates CPU access by
+   higher layers to OS resources
+ • It decides which program (aka Task)
+   gets CPU time and when
+     • Ideally ensures that all tasks get some time
+     • Very complex problem on personal or
+       server computer running many tasks
+       concurrently
+     • Somewhat simpler for embedded systems,
+       but complicated by hard-real time
+       requirements
+
+                                                                                                         6
+                                                      Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+
+
+
+Here we are most interested in the idea of a task
+
+
+
+
+                                                                                                             6
+ Layer Model of an OS (Lecture 4)
+ • Resource manager monitors and
+   manages the system’s resources
+     • May include the scheduler functions…
+     • Decides which tasks get which resources,
+       like memory, file space, and access to
+       input/output devices.
+ • FreeRTOS gives us some tools, but we
+   have to implement our own monitoring
+   and management
+
+
+
+                                                                                                         7
+                                                      Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+
+
+
+With FreeRTOS we are responsible for resource monitoring
+
+
+
+
+                                                                                                             7
+ Layer Model of an OS (Lecture 4)
+ • The OS Interface provides User
+   Programs access to common OS
+   functions
+     • Task definition and management
+     • Resource management
+     • Scheduler definition and management
+
+
+
+
+                                                                                                         8
+                                                      Adapted from ECE 212 lecture by Dr. J. Sit, 2025
+
+
+
+
+We can reuse the diagram from Lecture 3 and focus on the OS
+
+
+
+
+                                                                                                             8
+ Processes and Threads (Lecture 4)
+       Program memory                  RAM                                        Process 1
+            (ROM)
+
+                                     Process 1                                           Task
+          Program                                                                      (Thread)
+                                                                                                              CPU
+                                                                                         Task
+                                                                                       (Thread)
+                                     Process 2
+
+
+
+
+                                                                Task/Thread == single path of
+                        Process == instance of Program
+                                                                               execution
+                        Process == organization of
+                                                                Task/Thread is a scheduling entity
+                                   Program in RAM
+
+                                                         https://www.rtos.be/2013/08/programs-processes-and-threads-part-2/   9
+
+
+
+
+For context, remember that a process is an instance of a program and that a process
+will have one or more tasks or threads.
+
+A task is a unit of code that does something, often self-contained, but sometimes
+tasks cooperate to accomplish something
+
+
+
+
+                                                                                                                                  9
+Event Definition
+
+• In FreeRTOS, an event is a kernel-managed notification mechanism
+  used to signal that one or more conditions have occurred, allowing
+  tasks to synchronize or react without busy-waiting
+• Event Bits are used to indicate if an event has occurred or not, e.g.
+   • Define a bit (or flag) that means "A message has been received" when set to
+     1, and "there are no messages waiting to be processed" when set to 0
+• An Event Group is a set of event bits
+   • Individual event bits within an event group are referenced by bit number, e.g.,
+   • The event bit that means "A message has been received" might be bit 0 within
+     an event group
+
+                                            From https://freertos.org/Documentation/02-Kernel/02-Kernel-features/06-Event-groups   10
+
+
+
+
+                                                                                                                                        10
+Event Definition cont’d
+
+• Event groups referenced by variables of type EventGroupHandle_t
+   • There are 8 bits in a group if configUSE_16_BIT_TICKS is set to 1, or
+   • There are 24 bits if configUSE_16_BIT_TICKS is set to 0
+• A single variable of type EventBits_t stores the bits
+• Example is 24-bit event group with 3 bits used, bit 2 is set to 1.
+
+
+
+
+                                          From https://freertos.org/Documentation/02-Kernel/02-Kernel-features/06-Event-groups   11
+
+
+
+
+                                                                                                                                      11
+How to use Events
+
+• Event group API functions lets tasks,
+  • set one or more event bits within an event group,
+  • clear one or more event bits within an event group, and
+  • pend (enter the Blocked state so the task does not consume any processing
+    time) to wait for a set of one or more event bits to become set
+• Event groups can also be used to synchronize tasks, creating what is
+  often referred to as a task 'rendezvous’.
+  • A task synchronization/rendezvous point is code line where a task waits in
+    the Blocked state (not consuming any CPU time) until all the other tasks
+    taking part in the synchronization also reached their synchronization point
+
+                                           From https://freertos.org/Documentation/02-Kernel/02-Kernel-features/06-Event-groups   12
+
+
+
+
+                                                                                                                                       12
+Synchronization/Rendezvous Timing
+
+Priority
+ med       Task C
+  low      Task B
+ high      Task A
+           Idle
+
+
+
+                        Task B is low priority;
+                        gets to run when
+                        Task A is blocked
+
+                    Task A is high
+                    priority, so gets to
+                    run to its sync point         13
+
+
+
+
+                                                       13
+Synchronization/Rendezvous Timing
+
+Priority                                      Here, Task B creates Task
+                                              C with med priority
+ med       Task C
+  low      Task B       •
+ high      Task A
+           Idle
+
+
+                                                    Task B runs to its
+                        Task B is low priority;     sync point
+                        gets to run when
+                        Task A is blocked
+
+                    Task A is high
+                    priority, so gets to
+                    run to its sync point                                 14
+
+
+
+
+                                                                               14
+Synchronization/Rendezvous Timing
+
+Priority
+ med       Task C
+  low      Task B
+ high      Task A
+           Idle
+
+
+
+
+                    Task C runs to its
+                    sync point.
+                                         All tasks have hit
+                                         their sync points
+                                         and can continue     15
+
+
+
+
+                                                                   15
+Synchronization/Rendezvous Timing
+
+Priority
+                                                                       Task A completes
+ med       Task C
+  low      Task B
+ high      Task A
+           Idle
+
+
+                                            Task A is high priority,
+                                            so gets to run
+                    Task C runs to its
+                    sync point.
+                                         All tasks have hit
+                                         their sync points
+                                         and can continue                                 16
+
+
+
+
+                                                                                               16
+Synchronization/Rendezvous Timing
+                                            Task C completes
+Priority
+ med       Task C
+  low      Task B
+ high      Task A
+           Idle
+
+
+
+
+                    Task C has higher       Task B gets to run
+                    priority than Task B,
+                    so gets to run
+
+
+
+                                                             17
+
+
+
+
+                                                                  17
+Synchronization/Rendezvous Timing
+
+ Priority
+  med       Task C
+   low      Task B
+  high      Task A
+            Idle
+
+
+• In this example, it may be that Tasks A and B need what Task C
+  produces, but C can wait until A and B get some work done
+    • E.g. Task A might query a peripheral known to take N milliseconds to
+      respond. In the meantime, A and B can do useful work
+
+
+                                                                             18
+
+
+
+
+                                                                                  18
+Synchronization/Rendezvous API
+
+xEventGroupWaitBits()
+• Read bits within an event group,
+  optionally entering the Blocked state (with a timeout) to wait for a bit
+  or group of bits to become set
+• Must set one or more bits in uxBitsToWaitFor
+• If xWaitForAllBits is true, then this will unblock only when all bits
+  defined in uxBitsToWaitFor are set or the call times out
+
+
+
+                            From https://www.freertos.org/Documentation/02-Kernel/04-API-references/12-Event-groups-or-flags/05-xEventGroupSetBits   19
+
+
+
+
+                                                                                                                                                          19
+                                      From https://www.freertos.org/Documentation/02-Kernel/04-API-references/12-Event-groups-or-flags/05-xEventGroupSetBits
+Synchronization/
+Rendezvous API
+• xEventGroupWaitBits
+  returns if either bit is set
+  or xTicksToWait
+  expires
+• Can choose to do
+  different things depending
+  on what happened
+• Other tasks have access
+  to the event group
+  (xEventGroup)
+                                 20
+
+
+
+
+                                                                                                                                                               20
+  Interrupts
+
+  • Asynchronous signal from hardware
+     • E.g., a GPIO set as an input changes state
+  • Temporarily suspends normal code execution
+  • Transfers control to an Interrupt Service Routine (ISR)
+  • Used for time-critical or external events
+  • Using an interrupt is more efficient than polling (waiting) for an event
+     • Here “event” is used in a different context; means something that happens
+       outside the task
+
+
+                                                                       Made with help from ChatGPT   21
+
+
+
+
+An interrupt allows hardware to notify the CPU immediately when an event occurs,
+rather than waiting for software to poll. This is foundational for real-time systems.
+
+
+
+
+                                                                                                          21
+  Interrupts
+
+  • Asynchronous signal from hardware
+     • E.g., a GPIO set as an input changes state
+  • Temporarily suspends normal code execution
+  • Transfers control to an Interrupt Service Routine (ISR)
+  • Used for time-critical or external events
+  • Using an interrupt is more efficient than polling (waiting) for an event
+     • Here “event” is used in a different context; means something that happens
+       outside the task
+  Interrupts are key to providing real-time, low-latency responses
+                                                                       Made with help from ChatGPT   22
+
+
+
+
+An interrupt allows hardware to notify the CPU immediately when an event occurs,
+rather than waiting for software to poll. This is foundational for real-time systems.
+
+
+
+
+                                                                                                          22
+  Why Interrupts?
+
+  Interrupts
+  • Provide immediate response to external events
+  • Are lower latency than polling
+  • Facilitate efficient CPU utilization
+  • Enable low-power operation
+     • Modern microcontrollers can wake a CPU on interrupt
+     • RP2040 can wake from deep sleep on GPIO changes or signal from the built-
+       in Real-Time Clock (RTC), which acts as an “alarm clock”
+
+
+                                                                       Made with help from ChatGPT   23
+
+
+
+
+An interrupt allows hardware to notify the CPU immediately when an event occurs,
+rather than waiting for software to poll. This is foundational for real-time systems.
+
+
+
+
+                                                                                                          23
+ Interrupts and FreeRTOS
+
+ • Interrupts exist outside the FreeRTOS scheduler
+ • ISR preempts the currently running task
+ • ISR execution is non-preemptible (by tasks)
+ • RTOS must be explicitly notified from ISR
+ • ISRs are not tasks
+     • They interrupt task execution
+     • Must cooperate with the scheduler via the FromISR API
+ • Keep ISR as short as possible
+     • Too long and can interfere with scheduling, e.g., in fixed time-slice schemes
+                                                                       Made with help from ChatGPT   24
+
+
+
+
+In FreeRTOS, interrupts are not tasks. They interrupt task execution and must
+cooperate with the scheduler using special “FromISR” APIs.
+
+
+
+
+                                                                                                          24
+Interrupt Sources
+
+• Most peripherals generate interrupts
+  • Keyboards, mice, other input devices
+  • GPIOs (buttons, sensors, encoders)
+  • Timers (periodic scheduling, timeouts)
+  • Communication peripherals (UART, SPI, I²C)
+• We’ve already seen interrupts used with
+  • ADC completion
+  • DMA transfer completion
+
+
+
+                                                 Made with help from ChatGPT   25
+
+
+
+
+                                                                                    25
+ISRs and FreeRTOS
+
+• Keep ISRs short
+• No blocking calls
+• No standard FreeRTOS API calls
+• Use FromISR() functions only
+• Can communicate with tasks from ISR
+  • Queues (xQueueSendFromISR)
+  • Semaphores (xSemaphoreGiveFromISR)
+  • Event groups (xEventGroupSetBitsFromISR)
+  • Task notifications (xTaskNotifyFromISR)
+
+                                               Made with help from ChatGPT   26
+
+
+
+
+                                                                                  26
+When to use and not use Interrupts
+
+Use interrupts                     Don’t use interrupts
+• When there are external          • For slow or periodic tasks → use
+  asynchronous events                RTOS timers
+• When there are tight timing      • If there is complex processing →
+  requirements                       use tasks
+• In low-power designs             • If there are frequent events with
+• If there are high-frequency or     minimal urgency → polling
+  unpredictable events             • When determinism is not
+                                     required
+
+                                                          Made with help from ChatGPT   27
+
+
+
+
+                                                                                             27
+RP2040 (Pico)
+Example
+• Generate an interrupt from a push
+  button
+• Toggle an LED
+
+
+
+
+• On Wokwi
+  • ECE 315 Lec 28 FreeRTOS Example
+                                      Made with help from ChatGPT   28
+
+
+
+
+                                                                         28
+RP2040 (Pico)
+Example
+• Set the ISR, gpio_irq_callback
+   • Check to see if the right GPIO
+     generated the interrupt
+   • Good idea in case we change the
+     program later and add other GPIO-
+     triggered interrupts
+   • If what we expect, notify the task and
+     yield from the ISR
+• The LED task blocks until there is
+  an interrupt, then toggles the LED
+
+                                              Made with help from ChatGPT   29
+
+
+
+
+                                                                                 29
+RP2040 (Pico)
+Example
+• In main,
+   • Initialize the button GPIO
+   • Create the LED task
+   • Set the IRQ callback, aka
+     ISR
+• If you try this online, why
+  is it tricky to get the LED
+  to toggle?
+   • How might we fix that
+     problem?
+
+                                  Made with help from ChatGPT   30
+
+
+
+
+                                                                     30
+Summary
+• Real-time operating systems like FreeRTOS emphasize deterministic timing, low
+  latency, and efficient resource usage, with tasks as the primary scheduling units.
+• FreeRTOS events and event groups allow tasks to synchronize and block
+  efficiently without busy-waiting, supporting coordination patterns such as task
+  rendezvous.
+• Interrupts are asynchronous hardware signals that immediately notify the CPU of
+  external or time-critical events; lower latency and better efficiency than polling.
+• In FreeRTOS, Interrupt Service Routines (ISRs) are not tasks and must be short,
+  non-blocking, and use only FromISR() APIs to notify tasks.
+• Effective embedded design uses interrupts primarily to signal tasks, deferring
+  substantial processing to task context, as demonstrated by the RP2040 GPIO
+  interrupt example.
+
+                                                                      Made with help from ChatGPT   31
+
+
+
+
+                                                                                                         31
+Next Lecture
+
+• Analogue/Digital conversion
+• ADCs, DACs
+
+
+
+
+                                32
+
+
+
+
+                                     32
+Questions
+
+
+
+
+            33
+
+
+
+
+                 33
+

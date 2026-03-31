@@ -1,0 +1,617 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 30 :
+• Motion control
+• Stepper Motors
+• HW controllers, H-bridge
+
+
+
+
+                             1
+Last Lecture
+
+• Analogue/Digital conversion
+• ADCs, DACs
+
+
+
+
+                                2
+
+
+
+
+                                    2
+This Lecture
+
+• Motion control
+• Stepper motors
+• HW controllers, H-bridge
+
+
+
+
+                             3
+
+
+
+
+                                 3
+Learning Objectives
+
+• Explain the role of electromechanical actuators
+• Describe the operating principle of a stepper motor
+  • Explain full-step and half-step operation
+  • Interpret H-bridge operation
+• Explain the motivation for sophisticated stepper motor driver ICs,
+  such as the TMC2209
+• Describe and illustrate two ways to use a microcontroller to drive the
+  TMC2209
+  • What microcontroller peripherals might be useful (e.g., UART and…?)
+
+                                                                           4
+
+
+
+
+                                                                               4
+Electro-mechanical Motion and Control
+
+• Up to now we have focused on interfaces to things that sense or
+  indicate change
+• Can also interface to devices that change the environment in some
+  way, act on something, such as motors, servos, and actuators
+
+
+
+
+                                                                      5
+
+
+
+
+                                                                          5
+Actuators, Relays, Servos and Stepper Motors
+• Microcomputers are often required to control the movement of mechanical
+  devices or to set other physical parameters.
+• An actuator is a device that is used by a microcomputer to control an external
+  physical quantity, such as position.
+• A relay is an electrical switch that is closed and opened by driving or not driving
+  current through a magnetic coil.
+   • Normally open (n.o.) relay: close the switch by energizing
+   • Normally closed (n.c.) relay: open the switch by energizing
+• A servo motor is an actuator that is used to cause mechanical rotation within
+  some fixed range of angles (<360 deg.).
+• A stepper motor is an actuator whose rotational position (360 deg.) and speed
+  can be controlled by digital signals.
+                                                                   Adapted from ECE 315 lecture notes by Bruce Cockburn   6
+
+
+
+
+                                                                                                                              6
+Stepper Motors
+• An electromechanical actuator that converts a sequence of electrical
+  control pulses into discrete, incremental angular motion
+  • Each input pulse causes the motor shaft to rotate by a fixed step angle,
+    allowing precise control of position and speed without requiring feedback
+Key characteristics
+  • Discrete motion: Rotation occurs in fixed steps (e.g., 1.8° per step → 200
+    steps/revolution).
+  • Open-loop control: Position is determined by counting steps; no encoder is
+    required in basic operation.
+  • High holding torque: Can maintain position when energized.
+  • Repeatable positioning: Accuracy depends on step angle and load conditions.
+
+                                                          Adapted from ECE 315 lecture notes by Bruce Cockburn   7
+
+
+
+
+                                                                                                                     7
+Stepper Motor Operation –
+Simplified
+• A rotating rotor contains a permanent
+  magnet with fixed north (N) and
+  south (S) poles
+• A stationary stator is energized with
+  current to produce an electro-magnet
+  • The location of the N and S poles of the electromagnet is determined by the
+    current direction through the 1 or more winding(s)
+• The rotor experiences a torque that acts to bring the rotor into
+  alignment with the stator (the N and S poles attract one another)
+  • The torque disappears when the stator is fully aligned with the rotor
+
+                                                           Adapted from ECE 315 lecture notes by Bruce Cockburn   8
+
+
+
+
+                                                                                                                      8
+Stepper Motor Operation cont’d
+
+• Each transistor in the
+  H-bridge can be
+  controlled
+• They are switched to
+  shunt current one or
+  the other way through
+  the coil (A or B)        Dual
+
+
+
+
+                                  Adapted from ECE 315 lecture notes by Bruce Cockburn   9
+
+
+
+
+                                                                                             9
+Stepper Motor Operation cont’d                       Round rotor is a
+                                                    permanent magnet
+
+
+
+• Each transistor in the
+  H-bridge can be
+  controlled
+• They are switched to
+  shunt current one or
+  the other way through
+  the coil (A or B)        Dual
+
+
+
+
+                                  Adapted from ECE 315 lecture notes by Bruce Cockburn   10
+
+
+
+
+                                                                                              10
+Stepper Motor Operation – Full Step
+
+• Step #1 is the starting
+  position
+• Current flows into the
+  “top” of coil A
+
+
+                            Dual
+
+
+
+
+                                   Adapted from ECE 315 lecture notes by Bruce Cockburn   11
+
+
+
+
+                                                                                               11
+Stepper Motor Operation – Full Step
+
+• In step #2, current
+  flows into the top of
+  coil B
+• The rotor rotates
+  counter-clockwise 90°
+
+                          Dual
+
+
+
+
+                                 Adapted from ECE 315 lecture notes by Bruce Cockburn   12
+
+
+
+
+                                                                                             12
+ Stepper Motor Operation – Full Step
+
+• In step #3, current flows
+  into the bottom of coil A
+• The rotor rotates counter-
+  clockwise another 90°
+• In reality, no stepper
+  motor has steps this
+  coarse.                   Dual
+
+   • Standard step is 1.8° or
+     less
+   • 360/1.8 = 200 steps
+
+                                   Adapted from ECE 315 lecture notes by Bruce Cockburn   13
+
+
+
+
+                                                                                               13
+Stepper Motor Operation – Half Step
+
+• For full steps, we energize the coils
+  independently
+• What if after energizing coil A in one step, we
+  keep it energized and apply current to coil B?
+
+
+
+
+                                                    Adapted from ECE 315 lecture notes by Bruce Cockburn   14
+
+
+
+
+                                                                                                                14
+Stepper Motor Operation – Half Step
+
+• For full steps, we energize the coils                                                           A+
+  independently
+• What if after energizing coil A in one step, we
+  keep it energized and apply current to coil B?
+• Now both coils are energized the same and                             B-                                                      B+
+  will both pull on the same pole of the rotor
+• The rotor will be equally attracted by both
+  coils and settle in between them
+                                                                                                  A-
+A+➔A+B+➔B+➔B+A-➔A-➔A-B-➔B-➔B-A+ ➔A+➔•••
+
+                       https://drufelcnc.com/?c=blog&p=Stepper_motors    Adapted from ECE 315 lecture notes by Bruce Cockburn   15
+
+
+
+
+                                                                                                                                     15
+Stepper Motor Operation – Half Step
+
+• A simplified version of
+  a half-step driver
+  circuit
+• The microprocessor
+  can’t sink the high
+  current needed by the
+  motor, so uses
+  transistors to handle
+  the power
+
+
+                 https://os.mbed.com/components/Stepper-motor-unipolar/   Adapted from ECE 315 lecture notes by Bruce Cockburn   16
+
+
+
+
+                                                                                                                                      16
+  L298 Dual (Full) H-Bridge Driver IC
+• TTL-compatible
+  control inputs. Can be
+                                                                       Winding A                 Winding B
+  driven by many
+  microcontrollers
+• The H-bridge drives
+  inductive loads
+  (motors) at up to 46 V
+  and a total of 4 A DC
+                               In1                                                                                             In4
+
+                               In2                                                                                             In3
+
+
+
+                Adapted from ECE 315 lecture notes by Bruce Cockburn
+                                                                               Current sense A               Current sense B
+                                                                                                                                     17
+                https://www.st.com/resource/en/datasheet/l298.pdf
+
+
+
+
+                                                                                                                                          17
+  L298N Controller + Pico
+
+  Forward half-step sequence
+Step   In1 In2 In3 In4 Motor A Motor B
+ 1     H    L   L   L     +
+ 2     H    L   H   L     +       +
+ 3     L    L   H   L             +
+ 4     L   H    H   L     -       +
+ 5     L   H    L   L     -
+ 6     L   H    L   H     -       -
+ 7     L    L   L   H             -
+ 8     H    L   L   H     +       -
+
+                                                                                                               18
+                                         https://www.teachmemicro.com/raspberry-pi-pico-l298n-motor-control/
+
+
+
+
+                                                                                                                    18
+Smaller steps
+
+• As mentioned before, a typical step is 1.8°
+• This is accomplished by constructing the
+  rotor to have more fixed magnets that are
+  uniformly distributed
+• The animation shows a full-step
+• Half-step can be done just the same as
+  shown on a previous slide
+
+
+
+                                                Adapted from ECE 315 lecture notes by Bruce Cockburn   19
+
+
+
+
+                                                                                                            19
+ Hybrid Stepper Motor
+
+ • A hybrid stepper has a multi-pole stator
+   and a two-part rotor
+ • The rotor comprises two physically identical
+   multi-tooth permanent magnets, offset by a
+   half tooth
+ • They are magnetized along the shaft axis,
+   one north the other south
+ • The stator coils are wound on alternating
+   poles with corresponding teeth
+
+                  https://www.hsmagnets.com/blog/hybrid-stepper-motor/   Adapted from ECE 315 lecture notes by Bruce Cockburn   20
+
+
+
+
+https://www.linengineering.com/technology/hybrid-stepper-
+motors?srsltid=AfmBOoqYKnHkkSjZm8ZXfU6-
+kfnNUp0HU9UZpEeQKbqvmzJN67kRcSUy
+
+
+
+
+                                                                                                                                     20
+Hybrid Stepper Motor cont’d
+• The 48 teeth on one rotor disk are offset
+  by half a tooth with respect to the other
+  disk
+• Due to the offset, the rotor effectively has
+  96 interleaved poles of opposite polarity
+• This allows for a step of 1/96th of a
+  revolution by reversing the phase of a
+  winding
+• With two stator phases, there are 2x96
+  steps per revolution
+• This means that the step angle is
+  360°/192 = 1.875°
+
+                      https://www.hsmagnets.com/blog/hybrid-stepper-motor/
+                                                                             21
+
+
+
+
+                                                                                  21
+Sophisticated Motor Drivers – TMC2209
+
+• Stepper motors are used in many, many applications
+  • 3D printers
+  • Computer Numerically Controlled (CNC) machines
+  • Robotics
+  • Printers and scanners
+  • Camera control systems
+• This justifies the development of sophisticated driver/controllers that
+  have built-in control algorithms and circuits
+• Let’s look at one very popular driver, the TMC2209
+
+                                                                        22
+
+
+
+
+                                                                             22
+  Sophisticated Motor Drivers – TMC2209
+• From the manufacturer’s (TRINAMIC) data sheet
+   The TMC2209 is an ultra-silent motor driver IC for two phase stepper motors (…) [The] StealthChop2
+   chopper ensures noiseless operation, maximum efficiency, and best motor torque
+• StealthChop2™ No-noise, high-precision chopper algorithm for inaudible motion and
+  inaudible standstill of the motor. Supports very fast motor acceleration and deceleration.
+• SpreadCycle™ High-precision cycle-by-cycle current control for highest dynamic
+  movements.
+• MicroPlyer™ Microstep interpolator for obtaining full 256 microstep smoothness with
+  lower resolution step inputs starting from fullstep
+• StallGuard4™ Sensorless homing safes end switches & warns in case of motor overload
+• CoolStep™ Uses StallGuard measurement to adapt the motor current for best efficiency
+  and lowest heat-up of motor and driver
+
+                 https://www.analog.com/en/products/tmc2209.html                                    23
+
+
+
+
+                                                                                                         23
+ Sophisticated Motor Drivers – TMC2209
+• The chip provides two interfaces
+  • STEP/DIR; A CPU (µC) generates step & direction signals synchronized to
+    additional motors and other components within the system. The TMC2209
+    operates the motor as commanded by the configuration pins & STEP/DIR signals
+  • UART; uni- or bi-directional
+    The µC sends commands to the controller via the UART interface; supports
+     • Detailed diagnostics and thermal management
+     • Passive braking and freewheeling for flexible, lowest power stop modes
+     • More options for microstep resolution setting (fullstep to 256 microstep)
+     • Software controlled motor current setting and more chopper options
+     • Use StallGuard for sensorless homing and CoolStep for adaptive motor current and
+       cool motor
+
+              https://www.analog.com/en/products/tmc2209.html                       24
+
+
+
+
+                                                                                          24
+ Sophisticated Motor Drivers – TMC2209
+
+
+
+
+               https://www.analog.com/en/products/tmc2209.html                       25
+
+
+
+
+From the block diagram we see this is a pretty sophisticated chip.
+
+Of note is
+• the UART controller
+• OTP, one-time programmable memory
+• The register bank
+• The digital to analogue converter (DAC) that is used as part of the control loop
+• Custom circuits to provide advanced capabilities
+
+
+
+
+                                                                                          25
+Sophisticated Motor Drivers – TMC2209
+
+• A little more detail
+  including the pins
+• Notice the minimal
+  number of external
+  components needed
+   • 7 capacitors
+   • 2 resistors
+• From this a dual-inline
+  pin module can be
+  made
+            https://www.analog.com/en/products/tmc2209.html   26
+
+
+
+
+                                                                   26
+  Sophisticated Motor Drivers – TMC2209
+
+
+
+
+19 mm
+
+
+
+
+        https://www.analog.com/en/products/tmc2209.html   27
+
+
+
+
+                                                               27
+Sophisticated Motor Drivers – TMC2209
+
+
+
+
+      https://www.analog.com/en/products/tmc2209.html   28
+
+
+
+
+                                                             28
+Sophisticated Motor Drivers – TMC2209
+
+
+
+
+      https://www.analog.com/en/products/tmc2209.html   29
+
+
+
+
+                                                             29
+Mechatronics Motor Controller Board
+
+• To support the Mechatronics and Robotics labs, a custom motor
+  controller/sensors board has been developed
+  • Raspberry Pi Pico-based (RP2040)
+
+
+        • Can control             • Has
+           • 6 servos                  • 12 RGB LEDs
+           • 5 steppers                • 5 status LEDs
+           • 4 DC motors               • SPI with 3 chip selects
+                                       • I2C
+                                       • 8 + 6 GPIOs, 3 ADC capable
+
+                                                                      30
+
+
+
+
+                                                                           30
+MCTR Motor Controller/Sensors Board
+
+
+
+
+                                      31
+
+
+
+
+                                           31
+32
+
+
+
+
+     32
+Summary
+• Embedded systems can initiate and control physical motion using actuators such as relays,
+  servos, DC motors, and stepper motors
+• Stepper motors provide precise, repeatable positioning by converting digital pulse sequences into
+  discrete angular steps (open-loop control)
+• Full-step and half-step drive modes determine step resolution and smoothness through controlled
+  coil energization sequences
+• Special construction of stepper stator and rotors support small angle steps
+    • Typically, a single step is 1.8°. Micro-stepping supports even finer steps
+• H-bridge circuits enable bidirectional current flow in motor windings and are essential for
+  microcontroller-based motor control
+• Modern driver ICs (e.g., TMC2209) integrate current regulation, microstepping, diagnostics, &
+  communication interfaces (STEP/DIR, UART) to simplify & enhance motion control system design
+
+                                                                                   Made with help from ChatGPT   33
+
+
+
+
+                                                                                                                      33
+Next Lecture
+
+• Motion control
+• Encoders
+• Servo and DC Motors
+• Other actuators
+
+
+
+
+                        34
+
+
+
+
+                             34
+Questions
+
+
+
+
+            35
+
+
+
+
+                 35
+

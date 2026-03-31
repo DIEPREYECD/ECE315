@@ -82,6 +82,8 @@ typedef struct {
 decision_parameters motor_parameters;
 int parameters_flag = 0;
 
+volatile int EmergencyStop = 0; // emergency stop flag (sticky, set once triggered)
+
 int positionSequence[SEQUENCE_LENGTH][2] = {{NO_OF_STEPS_PER_REVOLUTION_FULL_DRIVE, 0}}; // position-delay array
 int sequenceIndex = 0; // the number of position-delay sequences
 int loop_count = 1; // the number of times to repeat the position-delay sequence
@@ -163,7 +165,7 @@ int main (void)
 				&xEmergStopTask );
 
 	//the queue size if set to 25 right now, you can change this size later on based on your requirements.
-	xQueue_FIFO1 = xQueueCreate( 25, sizeof(struct decision_parameters*) ); //connects task1 -> task2
+	xQueue_FIFO1 = xQueueCreate( 25, sizeof(decision_parameters*) ); //connects task1 -> task2
 
 	configASSERT(xQueue_FIFO1);
 
@@ -418,6 +420,7 @@ static void _Task_Motor( void *pvParameters ){
 		/**********************************************************************************************/
 		// get the motor parameters from the queue (FIFO1). The structure "decision_parameters" to store the received data has been declared in this task for you.
 
+		xQueueReceive(xQueue_FIFO1, &read_motor_parameters_from_queue, portMAX_DELAY);
 
 		/**********************************************************************************************/
 
@@ -434,7 +437,40 @@ static void _Task_Motor( void *pvParameters ){
 		// Find the function from the driver code that will help to move the motor by an absolute number of target steps.! The function is mentioned in the handout as well.
 		// Once the motor reaches the desired position, disable the motor and then execute the dwell time delay using the conventional vTaskDelay().
 
+		// Set motor parameters from received values
+		Stepper_setCurrentPositionInSteps(read_motor_parameters_from_queue->currentposition_in_steps);
+		Stepper_setSpeedInStepsPerSecond(read_motor_parameters_from_queue->rotational_speed);
+		Stepper_setAccelerationInStepsPerSecondPerSecond(read_motor_parameters_from_queue->rotational_acceleration);
+		Stepper_setDecelerationInStepsPerSecondPerSecond(read_motor_parameters_from_queue->rotational_deceleration);
 
+		// Loop through all position-delay pairs
+		for (int i = 0; i < sequenceIndex; i++) {
+			// Turn RGB LED green when motor starts moving
+			XGpio_DiscreteWrite(&Red_RGBInst, 1, 0x02);
+
+			// Setup move to absolute destination position (non-blocking)
+			Stepper_SetupMoveInSteps(positionSequence[i][0]);
+
+			// Process movement step-by-step, checking for emergency stop
+			while(!Stepper_processMovement()){
+				if(EmergencyStop){
+					// Emergency stop activated - exit loop immediately
+					// LED will be controlled by _Task_Emerg_Stop() now
+					return; // Exit the motor task
+				}
+			}
+
+			// Turn LED off when destination is reached (only if not emergency stopped)
+			if(!EmergencyStop){
+				XGpio_DiscreteWrite(&Red_RGBInst, 1, 0x00);
+
+				// Disable the motor
+				Stepper_disableMotor();
+
+				// Dwell for the specified delay (in milliseconds)
+				vTaskDelay(pdMS_TO_TICKS(positionSequence[i][1]));
+			}
+		}
 
 		/**********************************************************************************************/
 
@@ -459,6 +495,7 @@ static void _Task_Emerg_Stop( void *pvParameters ){
 		//Read the Button value inside the variable "btnState"
 		//i.e., poll the button
 
+		btnState = XGpio_DiscreteRead(&BTNInst, 1);
 
 		/**********************************************************************************************/
 
@@ -473,10 +510,22 @@ static void _Task_Emerg_Stop( void *pvParameters ){
 			//Set the "current stepper position" to the position at which it must now begin decelerating.
 			//There is a stepper driver function for adjusting the current position in steps and you have used in the _Task_Motor().
 			//Cancel the rest of the destination position-delay pairs.
-			//Inside an infinite loop, flash the Red light on RGB led at 2Hz.
+			//Inside an infinite loop, flash the Red light on RGB led at 3Hz.
 			//The Object Instance for RGB led is "Red_RGBInst".
 
+			// Set emergency stop flag (sticky - never cleared)
+			EmergencyStop = 1;
 
+			// Trigger motor deceleration stop
+			Stepper_SetupStop();
+
+			// Infinite loop: blink RED LED at 3Hz (333ms period, ~167ms toggle)
+			while(1){
+				XGpio_DiscreteWrite(&Red_RGBInst, 1, 0x01); // RED ON
+				vTaskDelay(pdMS_TO_TICKS(167));
+				XGpio_DiscreteWrite(&Red_RGBInst, 1, 0x00); // RED OFF
+				vTaskDelay(pdMS_TO_TICKS(167));
+			}
 
 			/**********************************************************************************************/
 		}

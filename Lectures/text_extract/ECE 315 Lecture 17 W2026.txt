@@ -1,0 +1,632 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 17 :
+• SPI and FreeRTOS
+• RP2040 example
+
+
+
+
+                            1
+Last Lecture
+
+• Serial Peripheral Interface – SPI
+
+
+
+
+                                      2
+
+
+
+
+                                          2
+This Lecture
+
+• SPI and FreeRTOS
+• RP2040 example
+• Use Wokwi and make a custom chip, and analogue-to-digital
+  converter (ADC)
+
+
+
+
+                                                              3
+
+
+
+
+                                                                  3
+Learning Objectives
+• Explain the purpose and structure of the Serial Peripheral Interface (SPI) protocol.
+• Describe how SPI is used for communication between microcontrollers and
+  peripheral devices.
+• Interpret SPI signals (SCK, MISO, MOSI, CS) using waveform visualization tools
+   • Using Wokwi logic analyzer block and external viewer
+• Understand how to use tools like Wokwi to prove a design before committing to
+  hardware, and why this is a good approach
+• Appreciate the limits of using simulation/emulation compared to actual hardware
+• Appreciate how having requirements aids in the design process
+
+
+                                                                                     4
+
+
+
+
+                                                                                         4
+ SPI and ECE 315
+ • In Lab #3, SPI is explored using a Zynq processor running FreeRTOS
+ • Today we will look again at FreeRTOS on the RP2040 (Pico) and SPI
+ • Using Wokwi, we will define a custom SPI device that mimics a 14-bit
+   analogue-to-digital converter (ADC)
+
+ • Our objective are to
+     • Explore the implementation of SPI in a practical scenario
+     • Appreciate and understand the specification of an embedded system
+     • Model the system before committing to design
+     • Use software tools before committing to hardware (why is this important?)
+
+                                                                                   5
+
+
+
+
+This lecture is more pragmatic than most.
+
+That is, we are treating the material here more like a problem you might encounter in
+industry than an academic learning exercise.
+
+
+
+
+                                                                                        5
+Why this example and why Wokwi?
+
+• SPI, I2C, and UART are the most common serial protocols you will
+  find in an embedded environment
+• Sensors, actuators, and simple input/output devices (switches,
+  joysticks, potentiometers, encoders) are all down in the embedded
+  space
+• Need to know how to look at the signals to be sure things are working
+  as design
+• Plus… we will have assignments that are based on Wokwi
+• It’s a great prototyping environment(!)
+
+                                                                      6
+
+
+
+
+                                                                          6
+System Requirements
+
+• Used for “slow” sensors, like temperature
+• Sample rate up to 10 samples per second
+• High temporal latency and high jitter can be tolerated
+   • What quantifies both?
+• Factory calibration is all that is needed
+   • What does that mean?
+• SPI is the preferred interface
+
+
+
+                                                           7
+
+
+
+
+                                                               7
+ADC Requirements
+
+• 16-bit SPI interface (16-bit word data)
+• 14-bit resolution
+• ADC samples are in the least significant bits of the 16-bit word
+
+
+
+
+                                                                     8
+
+
+
+
+                                                                         8
+ Some Assumptions…
+
+• Choose RP2040 as the most practical, cost-effective embedded
+  processor
+• Over specify the temperature measurement resolution
+• Assume an ideal temperature sensor
+  • Doesn’t change with age, is linear in temperature, is inexpensive, is analogue, etc.
+• For other reasons, an RTOS is needed
+  • Could implement the RP2040 code as bare metal, but won’t
+• Only functional and performance requirements matter at this point
+
+
+                                                                                     9
+
+
+
+
+                                                                                           9
+Pico FreeRTOS template
+
+• Start with the “ECE 315 FreeRTOS Template”
+  • Link on Canvas, but also
+  • https://wokwi.com/projects/447824416336657409
+• Save a copy of it naming it “ECE 315 Lecture 15”
+  or something else you like
+  • Since this is an example, it can be unlisted
+
+
+
+
+                                                     10
+
+
+
+
+                                                          10
+Pico FreeRTOS template
+
+• Start with the “ECE 315 FreeRTOS Template”
+  • Link on Canvas, but also
+  • https://wokwi.com/projects/447824416336657409
+• Save a copy of it naming it “ECE 315 Lecture 15”
+  or something else you like
+  • Since this is an example, it can be unlisted
+  • For assignments, make it public so that a link to it
+    can be submitted
+
+
+
+
+                                                           11
+
+
+
+
+                                                                11
+Add Custom Chip – Our SPI ADC
+
+• Click on the Pico and press “r” to rotate it so the USB
+  connector is at the top
+• Click the add component button and select
+  “Custom Chip” – name it something like “adc-315”
+• Two new files appear at the top left
+   • adc-315.chip.json and adc-315.chip.c
+• They are templates we can change to specify the pins
+  and pin functions for our new chip and how it behaves
+
+
+                                                            12
+
+
+
+
+                                                                 12
+Define the pins
+• Edit the adc-315.chip.json file
+• Need power, analogue input, and SPI
+
+
+
+
+                                        13
+
+
+
+
+                                             13
+Define the ADC pins
+• Edit the adc-315.chip.json file
+• Need power, analogue input, and SPI
+
+
+                                        chip1:SCK
+                                        chip1:MISO   chip1:VCC
+                                        chip1:MOSI   chip1:A_IN
+                                        chip1:nCS    chip1:GND
+
+
+
+
+                                                          14
+
+
+
+
+                                                                  14
+Analogue Signal Source – Thermistor
+
+• Click the add component button and
+  choose the “Analog Temperature
+  Sensor (NTC)”
+   • NTC == negative temperature coefficient
+   • As temperature goes up, the resistance
+     goes down
+• Rotate and place to the right of the
+  other chips
+
+
+
+                                               15
+
+
+
+
+                                                    15
+Watching SPI Signals – Logic Analyzer
+
+• Wokwi has a simple logic analyzer that
+  will let us see the SPI signals, so let’s
+  add it.
+• Now it’s time to connect everything…
+• Which pins on the Pico to use?
+
+
+
+
+                                              16
+
+
+
+
+                                                   16
+Raspberry Pi Pico W
+Pinout
+
+• https://picow.pinout.xyz
+• Use SPI0
+  • SPI0 RX (GP16) <-> MISO
+  • SPI0 CSn (GP17) <-> nCS
+  • SPI0 SCK (GP18) <-> SCK
+  • SPI0 TX (GP19) <-> MOSI
+• Use VBUS 5V for thermistor
+  and adc-315
+• Use GND pins 23 and 38
+
+                17
+
+
+
+
+                               17
+ Connections
+
+• Last, connect the adc-315
+  A_IN to the thermistor OUT
+• One last thing to do so
+  that the logic analyzer
+  signals match our SPI
+  signals
+
+
+
+
+                               18
+
+
+
+
+                                    18
+Logic Analyzer Signal Names
+
+• Change the diagram.json file so the wokwi-logic-analyzer
+  section has the attributes (attrs) shown
+• This will embed the right SPI signal
+  names in the file output by the logic
+  analyzer
+• To find out more about the logic
+  analyzer, click on it and select the ?
+• The file it will output is named
+  wokwi-logic-*.vcd, where * is a
+  number
+                                                             19
+
+
+
+
+                                                                  19
+Logic Analyzer Waveforms
+• When the logic analyzer runs, it outputs a file containing waveform
+  information called a Value Change Dump (VCD)
+• This can be viewed using GTKWave, https://gtkwave.sourceforge.net
+• There is a VSCode plugin, WaveTrace that works pretty well.
+• Select a trace and use keyboard arrow keys to find the signal edges
+
+
+
+
+                                                                    20
+
+
+
+
+                                                                         20
+Coding the adc-315
+
+• When we created the custom chip in Wokwi, the adc-315, two files
+  were created
+  • adc-315.chip.json and adc-315.chip.c
+• We modified the json file to specify the signal and power pins for the
+  custom chip
+• Wokwi provides documentation on the creation of custom chips
+  including an SPI guide
+  • https://docs.wokwi.com/chips-api/spi
+• The guides all have examples
+
+                                                                           21
+
+
+
+
+                                                                                21
+adc-315.chip.c
+
+• The template looks like this
+• We need to manage the SPI
+  and our analogue signal
+  input
+• As a slave device, the chip
+  select signal, nCS, must be
+  monitored to see when it
+  goes low. That indicates the
+  master is talking to us
+
+                                 22
+
+
+
+
+                                      22
+  adc-315.chip.c
+• The chip state info the two
+  pins we manage, a reference
+  to an SPI instance (spi) and
+  the 16-bit buffer
+• Remember, we are making a
+  14-bit ADC, so the closest
+  buffer size is 2 bytes, 16-bits
+• The chip_pin_change
+  and chip_spi_done
+  declarations are needed to
+  support SPI operation
+
+                    23
+
+
+
+
+                                    23
+adc-315.chip.c
+• The chip initialization
+   • Allocates storage for the chip state
+   • Initializes the A_IN and nCS pins
+   • Set the nCS pin to be watched for
+     both rising and falling edge events
+   • Defines the SPI configuration and
+     initializes it
+• Note that chip_pin_change is a
+  function reference; i.e., a callback
+  function that is called when the
+  nCS pin state changes
+
+                 24
+
+
+
+
+                                            24
+adc-315.chip.c
+
+• The callback,
+  chip_pin_change, starts
+  the SPI read response
+  • That is, it outputs on
+    MISO the 16 bits in the
+    spi_buffer
+  • When complete, it calls
+    chip_spi_done, which
+    loads into the buffer the
+    next 14-bit sample
+
+
+                25
+
+
+
+
+                                25
+adc-315.chip.c
+
+• pin_adc_read returns
+  a floating point value
+  between 0 and Vref (5V).
+• It is scaled to be from 0
+  to 2^14 = 16,383
+  and then put into the
+  buffer
+
+
+
+
+                26
+
+
+
+
+                              26
+main.c
+
+• What is needed;
+  • Change the task delay time to support the desired sample rate (10 Hz)
+  • Add support for the ADC readings (temperature calculation)
+  • Set up the SPI interface for the defaults of the SPI0 instance
+
+
+
+
+                                                                            27
+
+
+
+
+                                                                                 27
+main.c
+
+• Add some include files to
+  support the changes
+• Change the fundamental
+  delay time to 100 ms
+  (1/10 Hz)
+• Remove the producer-
+  consumer tasks and make
+  a task for getting the ADC
+  data
+
+              28
+
+
+
+
+                               28
+main.c
+
+• The ADC configuration
+  struct contains only the
+  sample period
+• We will need to manually
+  assert and de-assert the
+  nCS signal
+  • Make sure it’s configured
+    to be active low
+
+
+
+
+               29
+
+
+
+
+                                29
+   main.c
+• The #if check ensures we have
+  included the SPI interface
+  definitions
+• 500 kHz SCK is more than fast
+  enough to get the 16 bits
+• Set the SPI default pin
+  functions, but
+• Set nCS pin to be plain old GPIO
+• BUF_LEN is 2 bytes, 16 bits
+• Set some conversion constants
+
+
+
+                            30
+
+
+
+
+                                     30
+  main.c
+• Toggle nCS, read the
+  SPI data
+• Cast the two bytes in
+  the buffer to an
+  unsigned int
+• If it’s not zero,
+  convert it to
+  temperature
+• Normally something
+  else would be done
+  with it, …
+
+
+
+
+                       31
+
+
+
+
+                            31
+main.c
+• The main() function
+  is simple enough
+• Make the task
+• Start the task
+
+
+
+
+                   32
+
+
+
+
+                        32
+ main.c
+• After running, the logic analyzer outputs the VCD file
+                                                                      16 clock pulses
+• Here, GTKWave is used to display it
+
+                            16 bits from ADC
+
+
+
+
+                    Dummy bits from Pico that
+                    “push out” the ADC’s register          Chip Select active low
+                    bits – all 1’s aka 0xFFFF
+
+
+                       33
+
+
+
+
+                                                                                        33
+                                                Demo
+
+                                                       34
+
+
+
+
+https://wokwi.com/projects/447572164491841537
+
+
+
+
+                                                            34
+Next Lecture
+
+• Inter-Integrated Circuit (I²C)
+
+
+
+
+                                   35
+
+
+
+
+                                        35
+Questions
+
+
+
+
+            36
+
+
+
+
+                 36
+

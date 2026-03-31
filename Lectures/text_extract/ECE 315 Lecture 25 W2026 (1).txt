@@ -1,0 +1,570 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 25 :
+• DMA Example (RP2040)
+• Programmable I/O (PIO)
+
+
+
+
+                            1
+Last Lecture
+
+• Direct Memory Access (DMA)
+
+
+
+
+                               2
+
+
+
+
+                                   2
+This Lecture
+
+• DMA Example (RP2040)
+• Programmable I/O (PIO)
+
+
+
+
+                           3
+
+
+
+
+                               3
+Learning Objectives
+
+• Understand and Explain DMA Fundamentals
+  • Example each part of a simple memory-to-memory transfer example
+• Configure and Use DMA on the RP2040
+• Understand the Purpose and Architecture of Programmable I/O (PIO)
+  on the RP2040
+• Understand PIO Programming Concepts
+  • Explain the Operation of PIO Shift Registers and FIFOs
+  • Understand the 9 assembly instructions and simple examples of their use
+  • How DMA might be used with PIO to completely off-load the CPU
+
+                                                                              4
+
+
+
+
+                                                                                  4
+Simple Memory-to-Memory DMA
+
+• This example is straight from the Pico example files inside the C/C++
+  SDK
+• One reason to use it instead of something more complicated is that
+  Wokwi only supports Pico DMA with PIO
+• We will look at PIO (Programmable I/O) later…
+
+• This example sets a DMA channel to copy a block of memory in RAM
+  to another location.
+
+
+                                                                          5
+
+
+
+
+                                                                              5
+DMA Example
+
+
+
+
+              6
+
+
+
+
+                  6
+DMA Example
+
+
+
+
+         Get a free channel. Which
+            one doesn’t matter
+
+
+
+
+                                     7
+
+
+
+
+                                         7
+DMA Example
+
+
+
+
+                            Get a free channel. Which
+                               one doesn’t matter
+
+
+                             Hmmm, what is wrong
+                                with this?                                     8
+
+
+
+
+Bad programmer, should check that the returned value is valid…
+
+Copy and paste this into another program where lots of DMA channels are used and
+it may cause problems…
+
+
+
+
+                                                                                   8
+DMA Example
+      Configure the channel;
+      • Start with the default
+        configuration
+      • Doing a memory-to-memory
+        transfer, so for every read and
+        write we increment the address
+      • Doing a byte transfer, so set the
+        size to match
+
+
+
+
+                                            9
+
+
+
+
+                                                9
+10
+
+
+
+
+     10
+Programmable Input/Output (PIO)
+
+
+                                  11
+
+
+
+
+                                       11
+PIO Intro
+
+• On the RP2040,
+  Programmable
+  Input/Output (PIO)
+  refers to a special
+  peripheral device on
+  the system bus
+• There are two,
+  • PIO0
+  • PIO1
+
+
+                         Adapted from the RP2040 datasheet   12
+
+
+
+
+                                                                  12
+PIO Details
+
+• Each PIO has 4 state
+  machines
+• Each state machine
+  • is mapped to input &
+    output FIFOs
+  • is mapped to 32 GPIOs
+• Each is programmable
+  using a simple pseudo-
+  assembly language
+
+                            Adapted from the RP2040 datasheet   13
+
+
+
+
+                                                                     13
+PIO Intro cont’d
+
+The PIO can support a variety of IO standards, including:
+• 8080 and 6800 parallel bus
+• I2C
+• 3-pin I2S
+• SDIO
+• SPI, DSPI, QSPI
+• UART
+• DPI or VGA (via resistor DAC)
+
+                                                        Adapted from the RP2040 datasheet   14
+
+
+
+
+                                                                                                 14
+PIO Intro cont’d
+
+The PIO can support a variety of IO standards, including:
+• 8080 and 6800 parallel bus
+• I2C
+• 3-pin I2S
+• SDIO
+• SPI, DSPI, QSPI
+• UART                  !!!???
+• DPI or VGA (via resistor DAC)
+
+                                                        Adapted from the RP2040 datasheet   15
+
+
+
+
+                                                                                                 15
+PIO Intro cont’d
+• PIO state machines are highly specialized for IO
+  • supports determinism, precise timing, and close integration hardware
+• Each state machine is equipped with:
+  • Two 32-bit shift registers – either direction, any shift count
+  • Two 32-bit scratch registers
+  • 4×32-bit bus FIFO in each direction (TX/RX), reconfigurable as 8×32 in a single
+    direction
+  • Fractional clock divider (16 integer, 8 fractional bits) ➔ super important for
+    implementing communication protocols
+  • Flexible GPIO mapping
+  • DMA interface, sustained throughput up to 1 word per clock from system DMA
+  • IRQ flag set/clear/status
+                                                                Adapted from the RP2040 datasheet   16
+
+
+
+
+                                                                                                         16
+PIO Intro cont’d
+
+• When combined with the 32 DMA channels, some pretty complex
+  machines can be implemented
+  • Even with a relatively slow clock, moving data at 100s of MBps is possible
+
+
+• As previously mentioned, Wokwi only supports Pico DMA with PIO
+• Eventually we will combine what we learned about DMA with PIO for a
+  Wokwi example
+
+
+
+                                                               Adapted from the RP2040 datasheet   17
+
+
+
+
+                                                                                                        17
+PIO Programmer’s
+Model
+ • GPIO access
+ • An Input and Output
+   Shift Register
+   (ISR and OSR)
+ • Two scratch registers
+ • The program counter
+   steps through the PIO program memory just like the PC for the CPUs
+ • The control logic executes the instruction referenced by the PC
+ • This relatively small set of primitives can be used to create complex
+   operations
+                                                         Adapted from the RP2040 datasheet   18
+
+
+
+
+                                                                                                  18
+PIO Instructions aka Assembly Language
+• The PIO supports just nine (9) instructions
+Instruction       Definition
+         JMP Branches to a different instruction, can be conditional on a few conditions (such as X or Y zero or
+             not-zero) and decrement X or Y
+        WAIT Can wait for various things like a pin changing state or an interrupt occurring
+              IN shift from sources such as pin inputs or the X or Y scratch registers into the ISR
+         OUT shift bits from the OSR into a destination, such as pin outputs or the X or Y scratch registers
+       PUSH pushes the contents of the ISR into the input FIFO and clears the ISR. Waits if input FIFO is full
+        PULL pops the front element of the output FIFO into the OSR. Waits if the output FIFO is empty
+        MOV Moves from a source to a destination. Can use registers and pins as both a source and dest
+          IRQ Raises an interrupt (which can interrupt one of the cores or be used to synchronize SMs)
+         SET Writes an immediate value to X, Y or the pins
+
+                                        https://gregchadwick.co.uk/blog/playing-with-the-pico-pt4/   Adapted from the RP2040 datasheet   19
+
+
+
+
+                                                                                                                                              19
+Simple Example
+• Toggle a pin to create a square wave over 4 cycles total
+• On each system clock cycle, the state machine fetches, decodes, and
+  executes one instruction
+  • Can delay up to 31 cycles before next instruction executes
+
+                   set pins, 1 [1]
+
+
+
+
+                                                          Adapted from the RP2040 datasheet   20
+
+
+
+
+                                                                                                   20
+Simple Example
+• Toggle a pin to create a square wave over 4 cycles total
+• On each system clock cycle, the state machine fetches, decodes, and
+  executes one instruction
+  • Can delay up to 31 cycles before next instruction executes
+
+                   set pins, 1 [1]
+• Why does the instruction on line 12 not have a delay?
+
+
+
+
+                                                          Adapted from the RP2040 datasheet   21
+
+
+
+
+                                                                                                   21
+PIO State Machine – Program Control
+• Just like a microprocessor, there is a program counter (PC) that
+  points to PIO instructions to execute
+  • Generally, the PC increments by one each clock cycle, and wraps at the end of
+    the 32-instruction memory
+  • Of course, the JMP instruction can change the PC to any of the instruction
+    locations
+• The system has write-only access to the PIO instruction memory
+  • Programs can be loaded by the CPU or via DMA, the latter makes for a really
+    powerful capability
+
+
+
+
+                                                          Adapted from the RP2040 datasheet   22
+
+
+
+
+                                                                                                   22
+PIO State Machine – Clock Divider
+
+• The clock into the state machines can be scaled to effectively slow
+  down state machine transitions
+• This is accomplished using a 16.8 binary fixed-point fractional number
+• If the clock divider is set to 2.5, the square wave program would have
+  a period of 4 x 2.5 = 10 cycles, which at 1/125e6 = 8 ns would be 80 ns
+  or 12.5 MHz
+      pio->sm[0].clkdiv = (uint32_t)(2.5f*(1 << 16));
+• Being able to set the state machine clock is critical to achieving timing
+  needed for things like serial protocols (UART, SPI, I2C, etc.)
+
+                                                     Adapted from the RP2040 datasheet   23
+
+
+
+
+                                                                                              23
+  PIO – Output Shift Register (OSR)
+
+  • The OSR holds and shifts output data, between the TX FIFO and the
+    pins (or other destinations, such as the scratch registers)
+          • PULL instruction removes a 32-bit word from TX FIFO and place into the OSR
+          • OUT instruction shifts data from the OSR to other dest’s, 1…32 bits at a time
+          • Zeros (0) shifted in as data is shifted out
+          • If autopull enabled, SM automatically refills the OSR from the FIFO on an OUT
+            instruction once some total shift count threshold is reached
+          • Shift direction can be left/right, configurable via configuration registers
+
+
+
+Adapted from the RP2040 datasheet
+
+
+                                                                                        24
+
+
+
+
+                                                                                             24
+PIO – Input Shift Register (ISR)
+
+• The ISR holds and shifts input data, between the RX FIFO and the pins
+  (or other destinations, such as the scratch registers)
+  • IN instruction shifts 1…32 bits at a time into the register.
+  • PUSH instruction writes the ISR contents to the RX FIFO.
+  • The ISR is cleared to all-zeroes when pushed.
+  • If autopush enabled, SM will automatically push the ISR on an IN instruction,
+    once some shift threshold is reached
+  • Shift direction can be left/right, configurable via configuration registers
+
+
+
+
+                                                           Adapted from the RP2040 datasheet   25
+
+
+
+
+                                                                                                    25
+PIO – Shift Counters
+• The State Machines keep track of how many bits have been shifted
+  out of the OSR or into the ISR
+  • The counters have a range of [0,32]
+• The counters can be used to trigger specific actions
+  • The OSR can be automatically refilled once N bits have been shifted out
+  • The ISR can be automatically emptied once M bits have been shifted in
+  • PUSH or PULL instructions can be conditioned on the input or output shift
+    counter, respectively
+• PIO reset or asserting CTRL_SM_RESTART causes input shift counter
+  to be cleared and the output shift counter to be set to 32
+• Other instructions, PUSH,PULL,MOV, and OUT affect the counters
+                                                          Adapted from the RP2040 datasheet   26
+
+
+
+
+                                                                                                   26
+PIO – Scratch Registers, FIFOs
+• There are two 32-bit internal scratch registers named X and Y
+• All kinds of uses for PIO programs; checking values, holding temps, …
+• Each state machine has a pair of 4-word (4x32 bit) FIFO
+  • TX FIFO for transfers from the system to the state machine
+     • Written to by bus masters, the CPU or DMA, for example
+  • RX FIFO for transfers from the state machine to the system
+     • Written to by the state machine
+  • They act as buffers, decoupling the operation of the system from the PIOs
+• The FIFOs can be joined to transfer data in only one direction, making
+  for a doubly-deep FIFO
+
+                                                                Adapted from the RP2040 datasheet   27
+
+
+
+
+                                                                                                         27
+PIO – Pin Mapping
+• Each PIO can set the direction and set/get the value of up to 32 GPIOs
+• On each system clock cycle, none, one, or both of the following can be
+  done
+  • Change the level or direction of some GPIOs via an OUT or SET instruction, or
+    read some GPIOs via an IN instruction
+  • Change the level or direction of some GPIOs via a side-set operation
+• The operations are on one of four contiguous ranges of GPIOs, which
+  may overlap
+• Generally, each state machine’s outputs are mapped to a distinct
+  group of GPIOs, implementing some peripheral interface
+                                                          Adapted from the RP2040 datasheet   28
+
+
+
+
+                                                                                                   28
+PIO - IRQs
+
+• They can be set or cleared by the system or state machine
+• 8 in total, visible to all 8 state machines
+• Each of the lower 4 can be mapped onto one of the PIO’s interrupt
+  request lines
+• State machine can use them to get the CPU to perform a task
+• Can be used to synchronize operation between state machines
+
+
+
+
+                                                   Adapted from the RP2040 datasheet   29
+
+
+
+
+                                                                                            29
+An Impressive Example
+
+                Adapted from the RP2040 datasheet   30
+
+
+
+
+                                                         30
+     PIO Assembly VGA Driver for RP2040
+
+     • The PIO, coupled with
+       DMA, is fast enough to
+       create real-time VGA
+
+
+
+
+                                          https://vanhunteradams.com/Pico/VGA/VGA.html
+       signals
+     • We will look at this next
+       lecture and walk through
+       a simple demo using PIO
+       with DMA to vary an
+       LED’s brightness via
+       pulse-width modulation
+
+31
+
+
+
+
+                                                                                         31
+Summary
+• DMA allows peripheral-to-memory, memory-to-memory, and PIO-to-
+  memory transfers without CPU intervention
+  • Reviewed a simple memory-to-memory example
+• RP2040 includes two Programmable I/O (PIO) blocks (PIO0 & PIO1),
+  each with 4 state machines, various registers, mapping to GPIOs, and
+  system bus access
+  • Can implement standard and unique comm protocols and other I/O functions
+  • Supported by a simple assembly language (19 instructions) and API
+• DMA + PIO enables high-bandwidth, precise, and CPU-offloaded I/O
+  operations
+• Shift registers and FIFOs enable continuous streaming of data
+                                                                           32
+
+
+
+
+                                                                                32
+Next Lecture
+
+• Pico VGA Example
+• DMA + PIO Example
+
+
+
+
+                      33
+
+
+
+
+                           33
+Questions
+
+
+
+
+            34
+
+
+
+
+                 34
+

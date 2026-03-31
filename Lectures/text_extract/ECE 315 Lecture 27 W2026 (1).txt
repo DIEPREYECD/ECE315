@@ -1,0 +1,451 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 27 :
+• Using DMA to capture real world data
+
+
+
+
+                                         1
+Last Lecture
+
+• Pico VGA Example
+• DMA + PIO Example
+
+
+
+
+                      2
+
+
+
+
+                          2
+This Lecture
+
+• Using DMA to capture real world data
+
+
+
+
+                                         3
+
+
+
+
+                                             3
+ Learning Objectives
+
+ • Explain why DMA is useful for efficiently capturing real-world
+   analogue data in embedded systems; what are the benefits?
+ • Identify common real-world systems where analogue interfaces are
+   present
+ • Describe the role of ADCs, DACs, and DMA within a digitally
+   controlled analogue feedback system
+ • Understand how a round-robin sharing of a single ADC affects the
+   effective sample rate
+ • Explain why the samples for the example needed to be de-interleaved
+
+                                                                                    4
+
+
+
+
+There are just some of the learning objectives that might come from this lecture.
+
+
+
+
+                                                                                        4
+Using DMA to capture real world data
+• It is very common to interface computers, microcontrollers to the real
+  world
+  • The Internet of Things (IoT), such as thermostats, cameras, switches, …
+  • Automotive systems,
+  • Heating, ventilation, and air-conditioning (HVAC)
+  • Building electrical and power systems
+  • Biomedical systems
+  • Human-interface systems
+  • Audio entertainment systems
+• DMA supports efficient data and signal gathering without CPU
+  loading
+                                                                              5
+
+
+
+
+                                                                                  5
+Example; Analogue Feedback Control
+                                               Clock
+
+
+
+
+   Analogue In:   +             ADC       Microprocessor      DAC
+                                                                          Analogue
+                                                                            Plant
+                                                                                     Analogue Out
+   “set point”
+                       -
+• A common configuration for modern control of analogue systems may take an
+  analogue input that is a “set point”
+   • Might be from a dial control, another system in the building, etc.
+• More flexible to convert to a digital signal, process, then convert back to the
+  desired output
+• Microprocessor gives ability to update and dynamically control overall system
+                                                                                                6
+
+
+
+
+                                                                                                    6
+Example; Analogue Feedback Control
+                                         Clock
+
+
+
+
+   Analogue In:   +            ADC   Microprocessor   DAC
+                                                            Analogue
+                                                              Plant
+                                                                         Analogue Out
+   “set point”
+                      -
+• On the microprocessor, DMA may be used to move input samples from the ADC
+  into buffers for processing and move resulting data from output buffers to the DAC
+• Allows us to use a less powerful CPU efficiently
+   • Lower power consumption
+   • Lower cost
+   • Smaller footprint
+                                                                                    7
+
+
+
+
+                                                                                        7
+Example
+
+• Look at using DMA to completely offload the CPU
+• The RP2040 has a built-in analogue-to-digital converter that is
+  multiplexed to 5 channels
+  • 1 channel is tied to an on-chip temperature sensor
+
+
+• We will look at combining the multi-channel ADC and DMA to sample
+  external and internal temperature, and a variable voltage
+  • The voltage might represent the analogue input to a control system
+
+
+
+                                                                         8
+
+
+
+
+                                                                             8
+RP2040 ADC
+
+• Connect thermistor to ADC via
+  ain_sel[0], GPIO[26]
+• Connect potentiometer to ADC
+  via ain_sel[1], GPIO[27]
+  • Acts as a voltage divider
+• Connect temperature sensor to
+  ADC via ain_sel[4]
+
+
+
+
+                                  9
+
+
+
+
+                                      9
+Pico + Thermistor + Potentiometer
+
+
+
+
+                                    10
+
+
+
+
+                                         10
+ece315_dma_adc_x2.c
+
+
+• All in one file program
+• Start with includes and useful
+  definitions
+• Define the ring buffer type
+  • Contains buffer, indices, count
+
+
+
+
+                                      11
+
+
+
+
+                                           11
+ece315_dma_adc_x2.c
+cont’d
+
+• Define all the global variables
+• Define all ring buffer methods
+• In C++ this would all go into a class
+• Notice the use of modulo operator with
+  the RING_BUFFER_SIZE
+• Notice, too, that in _put and _get the
+  state of the ring buffer is checked
+
+
+
+                                           12
+
+
+
+
+                                                12
+ece315_dma_adc_x2.c
+cont’d
+
+• Define all the global variables
+• Define all ring buffer methods
+• In C++ this would all go into a class
+• Notice the use of modulo operator with
+  the RING_BUFFER_SIZE
+• Notice, too, that in _put and _get the
+  state of the ring buffer is checked
+• Should the read_idx and
+  write_idx be checked as well?
+                                           13
+
+
+
+
+                                                13
+ece315_dma_adc_x2.c
+cont’d
+• Since there is just one
+  ADC FIFO, the samples
+  from each source are put
+  there in an interleaved
+  fashion
+• Must de-interleave them
+• The dma_handler clears
+  the interrupt request,
+  processes the current
+  buffer, switches the buffer,
+  and starts the DMA again
+
+
+                                 14
+
+
+
+
+                                      14
+ece315_dma_adc_x2.c
+cont’d
+• The ADC is set up for three (3) inputs
+   • ain_sel[0], GPIO[26] is connected
+     to the thermistor
+   • ain_sel[1], GPIO[27] is connected
+     to the potentiometer
+   • ain_sel[4] is connected to the
+     internal temperature circuit
+• Set for round-robin sampling
+• Set ADC clock to 3 kHz
+• Set up the ADC FIFO for DMA access
+   • Don’t shift to get 8-bit samples; want all
+     12 bits, which fit in 16 bits, 2 bytes
+
+
+                                                  15
+
+
+
+
+                                                       15
+ece315_dma_adc_x2.c
+cont’d
+
+• Set up the DMA to transfer 16-bits,
+  2 bytes, at a time
+• Set writes to increment by 2 bytes
+• Set reads to stay at same address,
+  the ADC FIFO
+• Set the DMA requisition interrupt to
+  be triggered by the ADC
+• Finally, configure the channel and
+  define the DMA handler function
+
+                                         16
+
+
+
+
+                                              16
+ece315_dma_adc_x2.c
+cont’d
+
+• Define some data
+  processing
+  functions
+• The function to
+  calculate the
+  average value will
+  take any of the ring
+  buffers we defined
+
+
+
+                         17
+
+
+
+
+                              17
+ece315_dma_adc_x2.c
+cont’d
+
+• Main starts by initializing
+  the ring buffers
+• Initialize the ADC and
+  DMA
+• Start the ADC, then the
+  DMA
+
+
+
+
+                                18
+
+
+
+
+                                     18
+ece315_dma_adc_x2.c
+cont’d
+
+• Now just let things run
+• Periodically calculate the
+  average value of each
+  source
+
+
+
+
+                               19
+
+
+
+
+                                    19
+ece315_dma_adc_x2.c
+cont’d
+
+• Now just let things run
+• Periodically calculate the
+  average value of each
+  source
+• Are we missing any
+  samples when we
+  calculate the averages?
+   • Remember, the DMA
+     operates independently of
+     the CPU
+
+                                 20
+
+
+
+
+                                      20
+Wokwi sadness
+
+• Unfortunately, we cannot run
+  this example on Wokwi
+• DMA only supports the PIOs
+
+(I tried L)
+
+
+
+
+                                 21
+
+
+
+
+                                      21
+Summary
+• Many embedded systems must interface with analogue real-world signals (IoT,
+  automotive, HVAC, biomedical, audio).
+• DMA enables high-rate, low-overhead data acquisition by moving ADC samples
+  directly into memory without CPU involvement.
+• In digitally-controlled analogue systems, ADCs, DMA, DACS, memory buffers, and
+  CPUs can form effective feedback control systems.
+• The RP2040 ADC supports multi-channel, round-robin sampling with a shared
+  FIFO, requiring sample de-interleaving.
+• Ring buffers and DMA interrupt handlers enable continuous sampling while the
+  CPU performs processing asynchronously.
+• Because DMA operates independently of the CPU, careful design is required to
+  maintain data consistency and avoid timing issues.
+                                                                                 22
+
+
+
+
+                                                                                      22
+Next Lecture
+
+• Interrupts and Events
+
+
+
+
+                          23
+
+
+
+
+                               23
+Questions
+
+
+
+
+            24
+
+
+
+
+                 24
+Noise source
+
+• A reverse-biased diode that will go into breakdown (pass current) is a
+  very good generator of broadband noise
+• Circuits like the one shown are used
+  in radio, test instrument, and other
+  applications
+• This circuit will produce 1 Vpp white
+  noise over a span of many MHz
+
+
+
+
+                                                                                                 25
+                                             https://noisio.de/blog/small-voltage-noise-source
+
+
+
+
+                                                                                                      25
+

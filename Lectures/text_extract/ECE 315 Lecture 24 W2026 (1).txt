@@ -1,0 +1,75 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 24 :
+• Quiz #3
+• General Q&A
+
+
+
+
+                            1
+    Please Mute
+Cellphones, Tablets,
+    and Laptops
+
+                       2
+
+
+
+
+                           2
+Last Lecture
+
+• Direct Memory Access (DMA)
+
+
+
+
+                               3
+
+
+
+
+                                   3
+This Lecture
+
+• Quiz #3
+• General Q&A
+
+
+
+
+                4
+
+
+
+
+                    4
+Next Lecture
+
+• Pico VGA Example
+• DMA + PIO Example
+
+
+
+
+                      5
+
+
+
+
+                          5
+Questions
+
+
+
+
+            6
+
+
+
+
+                6
+

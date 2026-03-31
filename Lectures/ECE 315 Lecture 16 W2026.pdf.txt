@@ -1,24 +1,0 @@
-ECE 315
-Steven Knudsen, PhD, PEng Lecture 16 : · Quiz #2 · General Q&A
-1
-
-Last Lecture
-· Serial Peripheral Interface ­ SPI
-2
-2
-
-This Lecture
-· Quiz #2 · General Q&A
-3
-3
-
-Next Lecture
-· SPI and FreeRTOS · RP2040 example
-4
-4
-
-Questions
-5
-5
-
-

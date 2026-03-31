@@ -1,0 +1,388 @@
+ECE 315
+Steven Knudsen, PhD, PEng
+
+
+Lecture 32 :
+• RP2040 Stepper Examples
+   •   L298N H-Bridge
+   •   A4988 Driver
+
+
+
+
+                            1
+Last Lecture
+
+• Motion control
+• Encoders
+• Servo and DC Motors
+• Other actuators
+
+
+
+
+                        2
+
+
+
+
+                            2
+This Lecture
+
+• RP2040 Stepper Examples
+  • L298N H-Bridge
+  • A4988 Driver
+
+
+
+
+                            3
+
+
+
+
+                                3
+Learning Objectives
+• Explain the operation of an H-bridge circuit and how it enables bidirectional
+  control and speed control (via PWM) of DC motors
+• Implement stepper motor control using the L298N, including generating
+  appropriate coil activation sequences for full-step and half-step operation
+• Explain how GPIO control and timing parameters affect stepper motor behavior,
+  including direction, speed, and number of steps
+• Compare the L298N and A4988 drivers, highlighting differences in control
+  complexity, features (e.g., microstepping), and application use cases
+• Use the A4988 driver interface (STEP/DIR and microstepping inputs) to control a
+  stepper motor and configure different stepping resolutions
+
+
+
+                                                                                    4
+
+
+
+
+                                                                                        4
+Plain Old H-Bridge vs Modern Motor Controller
+
+• Look at two popular, inexpensive motor controllers
+  • L298N – An H-bridge
+  • A4988 – An H-bridge-based controller with extra bells and whistles
+
+
+
+
+                                                                         5
+
+
+
+
+                                                                             5
+  H-Bridge Control of a DC Motor
+  • This circuit illustrates the forward
+    and reverse control via switch S1
+  • Motor speed is accomplished via
+    pulse-width modulation (PWM)
+  • As with stepper motors, an encoder
+    will help with closed-loop control of
+    the motor
+  • Unlike the stepper, the motor
+    position cannot be simply held static
+
+
+
+                                                                                                            6
+                                            https://www.electronics-tutorials.ws/io/h-bridge-circuit.html
+
+
+
+
+We looked at this last lecture.
+
+One thing to remark on is that the frequency of the PWM signal needs to be
+significantly higher than the switching signal (S1).
+
+Imagine the switch S1 operates at 2x the PWM duty cycle and is offset by ¼ of the
+PWM frequency. Then one state, one direction through the H-bridge would never be
+energized
+
+
+
+
+                                                                                                                6
+  L298 Dual (Full) H-Bridge Driver IC
+• TTL-compatible
+  control inputs. Can be
+                                                                       Winding A                 Winding B
+  driven by many
+  microcontrollers
+• The H-bridge drives
+  inductive loads
+  (motors) at up to 46 V
+  and a total of 4 A DC
+                               In1                                                                                             In4
+
+                               In2                                                                                             In3
+
+
+
+                Adapted from ECE 315 lecture notes by Bruce Cockburn
+                                                                               Current sense A               Current sense B
+                                                                                                                                     7
+                https://www.st.com/resource/en/datasheet/l298.pdf
+
+
+
+
+                                                                                                                                         7
+Wokwi Stepper Control – L298N
+
+• Here ENA and ENB are
+  tied high, so the H-bridge
+  is always on
+• The Pico outputs the
+  signals [IN1,IN2,IN3,IN4]
+  in a specific pattern to
+  get the motor to step
+• It can step FULL or
+  HALF steps in this
+  example
+                                8
+
+
+
+
+                                    8
+  L298N Controller
+
+
+
+
+                                                                       9
+
+
+
+
+First we define which pins of the Pico will map to the INx inputs\
+
+The mask is used to turn on or off pins in groups
+
+The stepping sequence structure is just a collection of the INx pins
+
+
+
+
+                                                                           9
+ L298N Controller
+
+
+
+
+                                                                                     10
+
+
+
+
+The Half- and Full-step sequences are defined. They are the pattern of inputs that
+energize the A and B coils separately and together to cause a half or full step,
+respectively.
+
+Some convenient functions to manage multiple steps in one direction are defined and
+the GPIIO initialized.
+
+
+
+
+                                                                                          10
+  L298N Controller
+
+
+
+
+                                                                                     11
+
+
+
+
+stepper_set_outputs creates a GPIO pin mask based on the input sequence
+aka pattern. It then uses synchronous IO commands that are implicit in the two
+gpio_ commands to turn off briefly all puns and then turn on all those that are
+needed in this step.
+
+We want to avoid turning them on or off individually for number of practical reasons,
+probably the most important being that we don’t want to overlap signals when they
+should not be, or create glitches when they should be.
+
+The last function, initialize_stepper, ensures that the driver starts in the
+right place. That is, assuming the motor is positioned in its starting rotation, which we
+assume represents 0 degrees.
+
+Since we have no encoder or other way to determine position, this is in effect and
+open-loop initialization.
+
+
+
+
+                                                                                            11
+L298N Controller
+
+• The main program initializes
+  the GPIOs and stepper
+• Stepping the motor requires we
+  set the
+  • Direction, CW or CCW
+  • Number of steps
+  • The time in µs between steps
+• The time basically sets the
+  speed of the rotation
+
+                                                                                   12
+                                   https://wokwi.com/projects/450987602193048577
+
+
+
+
+                                                                                        12
+ Wokwi Stepper Control – A4988
+
+ • The A4988 is a “DMOS
+   Microstepping Driver with
+   Translator and Overcurrent
+   Protection”
+ • The output looks similar to
+   the L298N
+ • The input signals are
+   simpler with STEP and DIR
+   being the only two needed
+   to make the motor step                 A double-diffused metal-oxide semiconductor (DMOS)
+                                          is a circuit structure used in power MOSFETs.
+                                              https://www.allegromicro.com/en/products/motor-drivers/brush-dc-motor-drivers/a4988   13
+
+
+
+
+A double-diffused metal-oxide semiconductor (DMOS) is a circuit structure used in
+power MOSFETs.
+
+
+
+
+                                                                                                                                         13
+A4988
+• There are two H-bridges
+  as expected
+• MS1, MS2, and MS3 set
+  the steps to FULL, ½, ¼,
+  ⅛, or !⁄!"
+• There is support for
+  PWM and current
+  limiting and over-current
+  protection
+   • We won’t bother with
+     them today
+                                                                                                                    14
+                              https://www.allegromicro.com/en/products/motor-drivers/brush-dc-motor-drivers/a4988
+
+
+
+
+                                                                                                                         14
+Typical A4988 Module
+
+• The colour is
+  different than in
+  Wokwi, but the pinout
+  are the same
+• Some pins are pulled
+  high or low
+  • SLEEP is active low
+    and pulled high
+    internally
+
+
+
+                                                                                                                            15
+                     https://circuitdigest.com/microcontroller-projects/interface-a4988-stepper-motor-driver-with-arduino
+
+
+
+
+                                                                                                                                 15
+Wokwi Stepper Control – A4988
+
+• In this example we’ve added
+  RGB LEDs to indicate the
+  microstepping settings (MS1,
+  MS2, MS3)
+• LEDs for direction
+• SLEEP is pulled high, so we use
+  it to pull RESET (active low) high
+  as well
+
+
+                                       16
+
+
+
+
+                                            16
+17
+
+
+
+
+     17
+18
+
+
+
+
+     18
+19
+
+
+
+
+     19
+Next Lecture
+
+• Loop control
+• Feedback control
+
+
+
+
+                     20
+
+
+
+
+                          20
+Next Lecture
+
+• Loop control
+• Feedback control
+• Monday’s class cancelled
+• Wednesday is Garmin guest lecture
+• April 3, 6 holidays
+• May have lecture ready for the 8th
+• April 10th open Q&A session
+
+
+                                       21
+
+
+
+
+                                            21
+Questions
+
+
+
+
+            22
+
+
+
+
+                 22
+
