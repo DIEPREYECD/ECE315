@@ -8,3 +8,4 @@ Markdown exports generated from the saved Canvas HTML pages in this folder.
 - [Quiz #1_ ECE 315 - Winter 2026](Quiz #1_ ECE 315 - Winter 2026.md)
 - [Quiz #2_ ECE 315 - Winter 2026](Quiz #2_ ECE 315 - Winter 2026.md)
 - [Quiz #3_ ECE 315 - Winter 2026](Quiz #3_ ECE 315 - Winter 2026.md)
+- [Quiz #4_ ECE 315 - Winter 2026](Quiz #4_ ECE 315 - Winter 2026.md)
