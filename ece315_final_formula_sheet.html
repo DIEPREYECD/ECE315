@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ECE 315 Final Formula Sheet</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #55626d;
+      --line: #cfd8dd;
+      --page: #fffdfa;
+      --panel: #f4f8f8;
+      --panel-warm: #fff8ef;
+      --accent: #0b6470;
+      --accent-2: #b15b30;
+    }
+
+    @page {
+      size: letter landscape;
+      margin: 0.32in;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #e8edef;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      line-height: 1.2;
+    }
+
+    .page {
+      padding: 0.18in 0.22in 0.14in;
+      background: var(--page);
+      break-after: page;
+      page-break-after: always;
+    }
+
+    .page:last-child {
+      break-after: auto;
+      page-break-after: auto;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 0.18in;
+      margin-bottom: 0.11in;
+      padding-bottom: 0.08in;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .page-kicker {
+      margin: 0 0 0.03in;
+      color: var(--accent);
+      font-size: 7.6pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18pt;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 0.03in 0 0;
+      color: var(--muted);
+      font-size: 8pt;
+    }
+
+    .page-note {
+      max-width: 3.9in;
+      color: var(--muted);
+      font-size: 7.4pt;
+      text-align: right;
+    }
+
+    .columns {
+      column-count: 3;
+      column-gap: 0.15in;
+    }
+
+    .block {
+      break-inside: avoid;
+      margin: 0 0 0.11in;
+      padding: 0.08in 0.1in;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 1px 0 rgba(12, 31, 41, 0.05);
+    }
+
+    .block h2 {
+      margin: 0 0 0.06in;
+      color: var(--accent);
+      font-size: 10pt;
+      letter-spacing: 0.02em;
+    }
+
+    .block p {
+      margin: 0.04in 0;
+      font-size: 8pt;
+    }
+
+    .block ul,
+    .block ol {
+      margin: 0.04in 0 0.02in 0.15in;
+      padding: 0;
+    }
+
+    .block li {
+      margin: 0 0 0.03in;
+      font-size: 7.9pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.35pt;
+    }
+
+    th,
+    td {
+      padding: 0.035in 0.04in;
+      border-top: 1px solid #e0e7eb;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--accent);
+      background: var(--panel);
+      font-size: 7.1pt;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .formula {
+      display: block;
+      margin: 0.04in 0;
+      padding: 0.04in 0.05in;
+      border: 1px solid #dae4e8;
+      border-radius: 7px;
+      background: var(--panel);
+      font-family: Consolas, Monaco, monospace;
+      font-size: 7.55pt;
+      overflow-wrap: anywhere;
+    }
+
+    .callout {
+      margin-top: 0.05in;
+      padding: 0.05in 0.07in;
+      border-left: 4px solid var(--accent-2);
+      border-radius: 8px;
+      background: var(--panel-warm);
+      font-size: 7.7pt;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 7.15pt;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.04in;
+      margin-top: 0.05in;
+    }
+
+    .tag {
+      padding: 0.02in 0.05in;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 7.05pt;
+    }
+
+    .tight td,
+    .tight th {
+      padding-top: 0.028in;
+      padding-bottom: 0.028in;
+    }
+
+    .dense {
+      font-size: 6.7pt;
+    }
+
+    .dense td,
+    .dense th {
+      padding: 0.022in 0.025in;
+    }
+
+    .mono {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    @media print {
+      html,
+      body {
+        background: #ffffff;
+      }
+
+      body {
+        line-height: 1.14;
+      }
+
+      .page {
+        width: 10.36in;
+        height: 7.86in;
+        padding: 0.14in 0.16in 0.1in;
+        overflow: hidden;
+      }
+
+      .page-header {
+        display: block;
+        margin-bottom: 0.08in;
+        padding-bottom: 0.045in;
+      }
+
+      .page-kicker {
+        margin-bottom: 0.018in;
+        font-size: 6.2pt;
+      }
+
+      h1 {
+        font-size: 13.8pt;
+      }
+
+      .subtitle {
+        margin-top: 0.02in;
+        font-size: 6.8pt;
+      }
+
+      .page-note {
+        display: none;
+      }
+
+      .columns {
+        column-gap: 0.11in;
+      }
+
+      .block {
+        margin-bottom: 0.075in;
+        padding: 0.055in 0.075in;
+        border-radius: 7px;
+        box-shadow: none;
+      }
+
+      .block h2 {
+        margin-bottom: 0.04in;
+        font-size: 8.6pt;
+      }
+
+      .block p {
+        margin: 0.028in 0;
+        font-size: 7pt;
+      }
+
+      .block ul,
+      .block ol {
+        margin: 0.03in 0 0.016in 0.12in;
+      }
+
+      .block li {
+        margin-bottom: 0.02in;
+        font-size: 6.9pt;
+      }
+
+      table {
+        font-size: 6.45pt;
+      }
+
+      th,
+      td {
+        padding: 0.023in 0.027in;
+      }
+
+      th {
+        font-size: 6.1pt;
+      }
+
+      .formula {
+        margin: 0.026in 0;
+        padding: 0.028in 0.038in;
+        font-size: 6.55pt;
+      }
+
+      .callout {
+        margin-top: 0.032in;
+        padding: 0.032in 0.045in;
+        font-size: 6.75pt;
+      }
+
+      .small {
+        font-size: 6.35pt;
+      }
+
+      .tag-row {
+        gap: 0.03in;
+        margin-top: 0.03in;
+      }
+
+      .tag {
+        padding: 0.015in 0.038in;
+        font-size: 6.1pt;
+      }
+
+      .tight td,
+      .tight th {
+        padding-top: 0.018in;
+        padding-bottom: 0.018in;
+      }
+
+      .dense {
+        font-size: 5.85pt;
+      }
+
+      .dense td,
+      .dense th {
+        padding: 0.014in 0.018in;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Sheet 1 Front</p>
+        <h1>ECE 315 Final Formula Sheet</h1>
+        <p class="subtitle">RTOS + interface choices + serial reminders worth memorizing</p>
+      </div>
+      <p class="page-note">Laid out as four printable sides so the PDF matches a 2-sheet, double-sided cheat sheet. Focus is on non-intuitive exam reminders, not lecture mapping.</p>
+    </header>
+
+    <div class="columns">
+      <article class="block">
+        <h2>Written Answer Skeleton</h2>
+        <ol>
+          <li>State the requirement: rate, latency, distance, noise, accuracy, number of devices.</li>
+          <li>Pick the interface/peripheral and say why it matches the requirement.</li>
+          <li>Give the setup order: reset/clock -&gt; pin mux -&gt; config -&gt; enable -&gt; IRQ/DMA.</li>
+          <li>Describe the data path clearly.</li>
+          <li>Say how CPU load is reduced.</li>
+          <li>Name one failure mode and one mitigation.</li>
+        </ol>
+        <div class="tag-row">
+          <span class="tag">periodic</span>
+          <span class="tag">event-driven</span>
+          <span class="tag">memory-mapped</span>
+          <span class="tag">interrupt-driven</span>
+          <span class="tag">DMA-based</span>
+          <span class="tag">double-buffered</span>
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>RTOS Rules That Matter</h2>
+        <ul>
+          <li>Single-core FreeRTOS default: fixed-priority, preemptive scheduling.</li>
+          <li>The highest-priority ready task runs.</li>
+          <li>Equal-priority ready tasks can round-robin on the tick if time slicing is enabled.</li>
+          <li>Blocked tasks use no CPU time.</li>
+          <li>ISR work should be short; wake a task for the longer processing.</li>
+          <li>Event-driven beats busy-waiting when activity is irregular.</li>
+          <li>For periodic tasks, use timer-driven or absolute-period release; repeated relative delays accumulate drift/jitter.</li>
+        </ul>
+        <div class="formula">Task states: Running | Ready | Blocked | Suspended</div>
+        <div class="formula">Tick interrupt = scheduler heartbeat for delays/time slicing/timeouts</div>
+      </article>
+
+      <article class="block">
+        <h2>RTOS Object Picker</h2>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Object</th>
+              <th>Use It For</th>
+              <th>Remember</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Queue</td>
+              <td>Pass data between tasks</td>
+              <td>Data + sync together</td>
+            </tr>
+            <tr>
+              <td>Binary semaphore</td>
+              <td>Event signaling, ISR -&gt; task</td>
+              <td>No owner, no priority inheritance</td>
+            </tr>
+            <tr>
+              <td>Counting semaphore</td>
+              <td>Count repeated events/resources</td>
+              <td>Good when events can pile up</td>
+            </tr>
+            <tr>
+              <td>Mutex</td>
+              <td>Protect shared bus/resource</td>
+              <td>Has owner + priority inheritance</td>
+            </tr>
+            <tr>
+              <td>Task notification</td>
+              <td>Lightweight 1:1 event</td>
+              <td>Cheaper than queue/semaphore</td>
+            </tr>
+            <tr>
+              <td>Critical section</td>
+              <td>Tiny atomic code region</td>
+              <td>Never block inside it</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Priority Inversion</h2>
+        <p>Classic pattern: a low-priority task holds a mutex needed by a high-priority task. The high task blocks, then a medium task runs and delays the low task from releasing the mutex.</p>
+        <div class="callout">
+          Fix: use a <b>mutex</b> so the low task temporarily inherits higher priority. A plain semaphore does not give ownership or priority inheritance.
+        </div>
+        <ul>
+          <li>Keep mutex hold time short.</li>
+          <li>Do not do long I/O inside a protected region unless absolutely required.</li>
+          <li>Protect data with mutexes; signal events with semaphores/notifications.</li>
+        </ul>
+      </article>
+
+      <article class="block">
+        <h2>Interface Quick Pick</h2>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Bus</th>
+              <th>Pick When</th>
+              <th>Gotcha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>UART</td>
+              <td>Point-to-point async stream, debug, PC link</td>
+              <td>No clock; framing depends on baud match</td>
+            </tr>
+            <tr>
+              <td>SPI</td>
+              <td>Fast local peripheral link</td>
+              <td>Usually one CS per slave, mode must match</td>
+            </tr>
+            <tr>
+              <td>I2C</td>
+              <td>Many low/medium-speed devices, low pin count</td>
+              <td>Open-drain + pull-ups + ACK/NACK</td>
+            </tr>
+            <tr>
+              <td>RS-485</td>
+              <td>Noisy long-distance multidrop</td>
+              <td>Differential, often half-duplex</td>
+            </tr>
+            <tr>
+              <td>CAN</td>
+              <td>Robust multi-node control bus</td>
+              <td>Lower numeric ID wins arbitration</td>
+            </tr>
+            <tr>
+              <td>Ethernet</td>
+              <td>Need standard network/LAN</td>
+              <td>Highest protocol complexity here</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>UART / Serial Math</h2>
+        <div class="formula">t_frame ~= (start + data + parity + stop) / baud</div>
+        <div class="formula">8N1 =&gt; 10 bits/byte =&gt; bytes/s ~= baud / 10</div>
+        <div class="formula">drift ~= elapsed_time * ppm / 10<sup>6</sup></div>
+        <p class="small">For two free-running clocks, worst-case relative drift usually uses the sum of the absolute ppm errors.</p>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>RXC</td>
+              <td>Receive complete</td>
+            </tr>
+            <tr>
+              <td>UDRE</td>
+              <td>Transmit data register empty</td>
+            </tr>
+            <tr>
+              <td>TXC</td>
+              <td>Whole frame fully sent</td>
+            </tr>
+            <tr>
+              <td>FE / DOR / UPE</td>
+              <td>Framing / overrun / parity error</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          Non-intuitive one: <span class="mono">UDRE</span> means you can load the next byte; <span class="mono">TXC</span> means the stop bit of the previous frame has finished.
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>SPI / I2C / CAN Pressure Notes</h2>
+        <ul>
+          <li><b>SPI:</b> synchronous, usually full duplex, fast, local, common for ADC/DAC/display/sensors.</li>
+          <li><b>I2C:</b> addressed shared bus, fewer wires, lower speed, START/STOP/ACK/NACK matter.</li>
+          <li><b>RS-485:</b> differential + noise-robust + multidrop.</li>
+          <li><b>CAN:</b> robust arbitration + messaging; strong for distributed control.</li>
+        </ul>
+        <div class="callout">
+          Short answer defaults:
+          <br>SPI = local + fast + dedicated chip select acceptable.
+          <br>I2C = shared addressed bus + low wire count.
+          <br>UART = simple async point-to-point or debug console.
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Sheet 1 Back</p>
+        <h1>MMIO, IRQs, DMA, Timers, PWM</h1>
+        <p class="subtitle">Bring-up order, interrupt hygiene, and CPU-offload logic</p>
+      </div>
+      <p class="page-note">This side is the "do not blank on implementation order" page: pin mux, event chain, edge vs level, DMA pacing, timer math, and PWM relations.</p>
+    </header>
+
+    <div class="columns">
+      <article class="block">
+        <h2>Memory-Mapped I/O</h2>
+        <p>Peripheral registers live at fixed addresses in the CPU address space, so the processor configures hardware with normal loads/stores.</p>
+        <div class="formula">Bring-up: reset/clock -&gt; control regs -&gt; GPIO alternate function -&gt; enable -&gt; IRQ/DMA</div>
+        <ul>
+          <li>RP2040 reminders: GPIO alt functions, UART/SPI/I2C, ADC, PWM, timer, DMA, subsystem resets.</li>
+          <li>Atomic set/clear/xor register aliases are safer than read-modify-write when hardware is live.</li>
+        </ul>
+      </article>
+
+      <article class="block">
+        <h2>volatile, Atomic, Critical Section</h2>
+        <ul>
+          <li><b>volatile</b> is for hardware registers and flags shared with ISRs.</li>
+          <li><b>volatile</b> forces real reads/writes; it does <b>not</b> make access atomic.</li>
+          <li>Use atomic registers, a critical section, or a mutex when multiple contexts can modify the same resource.</li>
+          <li>Critical sections are for very short regions only; do not call blocking APIs inside them.</li>
+        </ul>
+        <div class="callout">
+          Memory visibility problem and mutual exclusion problem are not the same thing. <b>volatile</b> helps visibility, not safe sharing by itself.
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>Interrupt Rules</h2>
+        <ul>
+          <li>Clear the interrupt source.</li>
+          <li>Move minimal data if needed.</li>
+          <li>Wake or notify a task.</li>
+          <li>Do the heavier work in task context.</li>
+          <li>Use only ISR-safe APIs from an ISR.</li>
+        </ul>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Trigger Type</th>
+              <th>Remember</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Edge</td>
+              <td>One transition triggers it</td>
+            </tr>
+            <tr>
+              <td>Level</td>
+              <td>Remains active while condition stays true; clear/remove cause or it retriggers</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Polling vs Interrupt vs DMA</h2>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Best For</th>
+              <th>Main Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Polling</td>
+              <td>Slow/simple/periodic checks</td>
+              <td>CPU wasted + latency = poll period</td>
+            </tr>
+            <tr>
+              <td>Interrupt</td>
+              <td>Async moderate-rate events</td>
+              <td>Too many interrupts can overload CPU</td>
+            </tr>
+            <tr>
+              <td>DMA</td>
+              <td>Repetitive high-rate transfers</td>
+              <td>More setup + buffering discipline</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          Good exam line: "Use DMA with block transfers so the CPU handles only block-complete interrupts instead of every sample/byte."
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>Event Chains</h2>
+        <p>Hardware-to-hardware triggering removes software jitter and lowers CPU load.</p>
+        <div class="formula">timer -&gt; ADC start -&gt; ADC FIFO -&gt; DMA -&gt; RAM buffer -&gt; task processes completed block</div>
+        <ul>
+          <li>Use timers for periodic release instead of busy loops.</li>
+          <li>Use sensor data-ready or DMA-complete IRQs for event-driven tasks.</li>
+        </ul>
+      </article>
+
+      <article class="block">
+        <h2>DMA Essentials</h2>
+        <ul>
+          <li>Best for ADC samples to RAM, UART RX/TX buffers, SPI bursts, waveform tables.</li>
+          <li>DREQ/TREQ pacing means the peripheral says when the next transfer is safe.</li>
+          <li>Double buffering: DMA fills A while CPU processes B, then swap.</li>
+        </ul>
+        <div class="formula">block_interrupt_rate ~= sample_rate / block_size</div>
+        <div class="formula">block_time = block_size / sample_rate</div>
+        <div class="callout">
+          Bigger blocks reduce interrupt load but increase latency. This tradeoff shows up in almost every ADC/DMA design answer.
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>DMA Failure Modes</h2>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Mitigation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Buffer overrun</td>
+              <td>Larger buffers, double buffering, lower rate</td>
+            </tr>
+            <tr>
+              <td>CPU cannot keep up with blocks</td>
+              <td>Increase block size, reduce processing, lower rate</td>
+            </tr>
+            <tr>
+              <td>DMA and software both touch FIFO/resource</td>
+              <td>Clear ownership and sequencing</td>
+            </tr>
+            <tr>
+              <td>Too many completion IRQs</td>
+              <td>Block transfers, not per-sample handling</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Timer Math</h2>
+        <div class="formula">T = 1 / f</div>
+        <div class="formula">counts ~= delta_t * f_clk / prescaler</div>
+        <div class="formula">delta_t ~= counts * prescaler / f_clk</div>
+        <ul>
+          <li>Timers are for periodic tasks, timeouts, pulse measurement, and alarm IRQs.</li>
+          <li>Use alarms/timebases to avoid software delay loops.</li>
+        </ul>
+      </article>
+
+      <article class="block">
+        <h2>PWM Relations</h2>
+        <div class="formula">duty = T_on / T</div>
+        <div class="formula">V_avg ~= duty * V_high</div>
+        <div class="formula">f_pwm ~= f_clk / (divider * (TOP + 1))</div>
+        <div class="formula">duty ~= compare / (TOP + 1)</div>
+        <ul>
+          <li>PWM approximates analog only after filtering or when the load averages it naturally.</li>
+          <li>Useful for LED dimming, motor speed, and DAC-like output.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Sheet 2 Front</p>
+        <h1>ADC, DAC, Sampling, Sensor Interfacing</h1>
+        <p class="subtitle">Core formulas, aliasing traps, data-rate math, and analog front-end reminders</p>
+      </div>
+      <p class="page-note">This is the side to lean on for Q20-style reasoning: conversion math, anti-aliasing, DMA-friendly acquisition, and how to talk about real sensors in one compact answer.</p>
+    </header>
+
+    <div class="columns">
+      <article class="block">
+        <h2>ADC Core Formulas</h2>
+        <div class="formula">levels = 2<sup>N</sup></div>
+        <div class="formula">LSB ~= Vref / 2<sup>N</sup></div>
+        <div class="formula">quantization error ~= +/- 0.5 LSB</div>
+        <div class="formula">code ~= (Vin / Vref) * (2<sup>N</sup> - 1)</div>
+        <div class="formula">Vin ~= code * Vref / (2<sup>N</sup> - 1)</div>
+        <p class="small">Common course convention: use <span class="mono">Vref / 2^N</span> for LSB size, but use <span class="mono">(2^N - 1)</span> when mapping codes to full-scale values.</p>
+      </article>
+
+      <article class="block">
+        <h2>12-Bit Example</h2>
+        <p>For a 12-bit ADC with <span class="mono">Vref = 3.3 V</span>:</p>
+        <div class="formula">levels = 4096</div>
+        <div class="formula">LSB = 3.3 / 4096 = 0.0008057 V = 0.806 mV/bit</div>
+        <div class="formula">Vin = 1.65 V -&gt; code ~= (1.65 / 3.3) * 4095 ~= 2048</div>
+        <ul>
+          <li>RP2040 ADC reminders: 12-bit SAR, FIFO, DMA-friendly.</li>
+          <li>Great pattern: timer-triggered sampling into FIFO, DMA blocks into RAM.</li>
+        </ul>
+      </article>
+
+      <article class="block">
+        <h2>Sampling and Nyquist</h2>
+        <div class="formula">f_s &gt;= 2 * f_max</div>
+        <div class="formula">T_s = 1 / f_s</div>
+        <p>Practical designs often sample higher than Nyquist so waveform capture is cleaner and analog filtering is easier.</p>
+        <div class="formula">Example: if f_max = 1 kHz, minimum f_s = 2 kS/s; practical might be 10 kS/s</div>
+      </article>
+
+      <article class="block">
+        <h2>Aliasing</h2>
+        <p>Aliasing happens when sampling is too slow. High-frequency content folds into false lower-frequency content.</p>
+        <div class="formula">One folded-frequency form: f_alias = |f_in - k f_s| for the nearest integer k</div>
+        <ul>
+          <li>Once aliased, the original information is lost.</li>
+          <li>Prevent it with an <b>analog low-pass anti-alias filter</b> before the ADC input.</li>
+          <li>Oversampling gives filter transition band room.</li>
+        </ul>
+        <div class="callout">
+          Exam phrase: "An anti-alias filter is needed so out-of-band content does not fold into the sampled band."
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>Data-Rate and Buffer Math</h2>
+        <div class="formula">bytes/s = f_s * channels * bytes_per_sample</div>
+        <div class="formula">buffer_time = samples_per_buffer / f_s</div>
+        <div class="formula">buffer_IRQ_rate ~= f_s / samples_per_buffer</div>
+        <p>Example: 2 channels at 10 kS/s, stored as 16-bit values:</p>
+        <div class="formula">bytes/s = 10,000 * 2 * 2 = 40,000 B/s</div>
+        <p class="small">Multi-channel sampling often needs de-interleaving after DMA if the ADC cycles through channels.</p>
+      </article>
+
+      <article class="block">
+        <h2>DAC and PWM Output</h2>
+        <div class="formula">Vout ~= code * Vref / (2<sup>N</sup> - 1)</div>
+        <p>Example: 12-bit DAC, <span class="mono">Vref = 3.3 V</span>, <span class="mono">code = 2048</span> gives about <span class="mono">1.65 V</span>.</p>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Remember</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>DAC</td>
+              <td>Direct analog output, but watch settling time, reference accuracy, and loading</td>
+            </tr>
+            <tr>
+              <td>PWM</td>
+              <td>Analog-like after averaging/filtering; still has ripple and switching content</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Analog Front-End Checklist</h2>
+        <ul>
+          <li>Amplification</li>
+          <li>Attenuation</li>
+          <li>Offset/level shift</li>
+          <li>Low-pass filtering</li>
+          <li>Buffering / impedance matching</li>
+          <li>Input protection</li>
+          <li>Match sensor range to ADC range</li>
+        </ul>
+        <div class="callout">
+          High resolution does <b>not</b> imply high accuracy. Reference accuracy, noise, and front-end errors all matter.
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>MCU Quick Compare</h2>
+        <table class="tight dense">
+          <thead>
+            <tr>
+              <th>MCU</th>
+              <th>Built-In Interfaces</th>
+              <th>Key Rates / Sizes</th>
+              <th>Exam Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>RP2040</td>
+              <td>2x UART, 2x SPI, 2x I2C, DMA, ADC, 8x PIO SM, 30 GPIO</td>
+              <td>133 MHz, 264 kB SRAM, 4 ADC inputs</td>
+              <td>Memory-mapped peripherals; DMA + PIO are the big exam advantage for timing and offload</td>
+            </tr>
+            <tr>
+              <td>ATmega328P</td>
+              <td>USART, SPI, TWI (I2C), 10-bit ADC</td>
+              <td>Up to 20 MHz, 32 KB flash, 2 KB SRAM, 6-ch 10-bit ADC</td>
+              <td>Classic register-level MCU; much less parallel/flexible than RP2040</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Sensor Bus / Addr / Bytes / Rates</h2>
+        <table class="tight dense">
+          <thead>
+            <tr>
+              <th>Part</th>
+              <th>Interface / Addr</th>
+              <th>Bytes / Format</th>
+              <th>Rate</th>
+              <th>Exam Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>MPU-6050</td>
+              <td>I2C, 0x68 / 0x69</td>
+              <td>Accel + gyro burst, temp included</td>
+              <td>Gyro 8 kHz raw, 1 kHz with DLPF</td>
+              <td>FIFO + auxiliary I2C bus; good burst-read / synchronized IMU example</td>
+            </tr>
+            <tr>
+              <td>LSM6DSO</td>
+              <td>I2C / SPI / I3C, 0x6A / 0x6B</td>
+              <td>16-bit/axis; 12 B full accel+gyro</td>
+              <td>Accel/gyro up to 6664 Hz</td>
+              <td>FIFO + IRQ support; 6 B accel only, 6 B gyro only</td>
+            </tr>
+            <tr>
+              <td>LIS3MDL</td>
+              <td>I2C / SPI, 0x1C / 0x1E</td>
+              <td>16-bit/axis; 6 B/sample</td>
+              <td>Up to 80 Hz</td>
+              <td>Much slower than IMU data, so often does not need the same polling rate</td>
+            </tr>
+            <tr>
+              <td>LPS22DF</td>
+              <td>I2C / SPI / I3C, 0x5C / 0x5D</td>
+              <td>24-bit pressure + temp; 5 B set</td>
+              <td>1 to 200 Hz ODR</td>
+              <td>FIFO + data-ready IRQ; pressure 3 B, temp commonly treated as 2 B</td>
+            </tr>
+            <tr>
+              <td>SM225</td>
+              <td>SPI only, no I2C addr</td>
+              <td>10-bit output</td>
+              <td>15 kSps</td>
+              <td>Good contrast part: not I2C, factory-calibrated, threshold digital output</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Fast byte-count rules: 16-bit axis = 2 B/axis, LSM6DSO accel+gyro = 12 B, LIS3MDL = 6 B, LPS22DF pressure+temp = 5 B.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Sheet 2 Back</p>
+        <h1>Motion Control, CPU Budget, Failure Modes</h1>
+        <p class="subtitle">Stepper math, A4988 reminders, actuator comparisons, and quick reusable wording</p>
+      </div>
+      <p class="page-note">This side is tuned for Q21-style design reasoning: pulse-rate math, driver selection, when open-loop is enough, and what to say about bottlenecks and mitigations.</p>
+    </header>
+
+    <div class="columns">
+      <article class="block">
+        <h2>Stepper Motor Formulas</h2>
+        <div class="formula">step_angle = 360 deg / steps_per_rev</div>
+        <div class="formula">steps_per_rev = 360 deg / step_angle</div>
+        <div class="formula">effective_steps_per_rev = full_steps * microstep_factor</div>
+        <div class="formula">step_frequency = effective_steps_per_rev * RPM / 60</div>
+        <div class="formula">position_deg = (steps / steps_per_rev) * 360</div>
+        <ul>
+          <li>1.8 deg stepper =&gt; 200 full steps/rev.</li>
+          <li>Microstepping improves smoothness/resolution, but torque per microstep is lower.</li>
+        </ul>
+      </article>
+
+      <article class="block">
+        <h2>Stepper Example</h2>
+        <p>1.8 deg motor, 1/16 microstepping, 65 RPM:</p>
+        <div class="formula">effective_steps_per_rev = 200 * 16 = 3200</div>
+        <div class="formula">step_frequency = 3200 * 65 / 60 = 3466.7 steps/s</div>
+        <div class="formula">4 motors -&gt; about 13.9 ksteps/s total pulse demand</div>
+        <div class="callout">
+          High step rates argue for timers, PWM, DMA, PIO, or other hardware-assisted pulse generation, not naive software polling.
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>A4988 Reminders</h2>
+        <ul>
+          <li><b>STEP</b> pulse rate sets speed; <b>DIR</b> selects direction.</li>
+          <li><b>MS1/MS2/MS3</b> select microstep resolution.</li>
+          <li>Normal control is pin-based <b>STEP/DIR</b>, not an I2C/SPI-style bus peripheral.</li>
+          <li><b>STEP</b> minimum high ~= 1 us; minimum low ~= 1 us.</li>
+          <li><b>nENABLE, nRESET, nSLEEP</b> can often be shared across motors if system behavior allows it.</li>
+        </ul>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>MS1</th>
+              <th>MS2</th>
+              <th>MS3</th>
+              <th>Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>L</td>
+              <td>L</td>
+              <td>L</td>
+              <td>Full step</td>
+            </tr>
+            <tr>
+              <td>H</td>
+              <td>L</td>
+              <td>L</td>
+              <td>Half step</td>
+            </tr>
+            <tr>
+              <td>L</td>
+              <td>H</td>
+              <td>L</td>
+              <td>Quarter step</td>
+            </tr>
+            <tr>
+              <td>H</td>
+              <td>H</td>
+              <td>L</td>
+              <td>Eighth step</td>
+            </tr>
+            <tr>
+              <td>H</td>
+              <td>H</td>
+              <td>H</td>
+              <td>Sixteenth step</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>External ADC / DAC / Driver Cases</h2>
+        <table class="tight dense">
+          <thead>
+            <tr>
+              <th>Part</th>
+              <th>Interface</th>
+              <th>Resolution / Rate</th>
+              <th>Exam Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>MAX11662</td>
+              <td>SPI / QSPI / Microwire ADC</td>
+              <td>12-/10-/8-bit family, 500 ksps</td>
+              <td>Serial external ADC; easier hookup than parallel, but bus throughput matters</td>
+            </tr>
+            <tr>
+              <td>MAX1191</td>
+              <td>Parallel, multiplexed digital output</td>
+              <td>Dual 8-bit ADC, 7.5 Msps</td>
+              <td>Parallel + muxed + tri-state; strong PIO + DMA example instead of CPU GPIO polling</td>
+            </tr>
+            <tr>
+              <td>MAX5480</td>
+              <td>8-bit parallel DAC</td>
+              <td>Voltage/current output modes</td>
+              <td>RAM-write-like interface with active-low CS and WR; good PIO-driven output example</td>
+            </tr>
+            <tr>
+              <td>L298N</td>
+              <td>IN1-IN4 + ENA/ENB pins</td>
+              <td>Up to 46 V, 4 A total DC</td>
+              <td>Power H-bridge driver, not a bus peripheral; older bipolar driver part</td>
+            </tr>
+            <tr>
+              <td>A4988</td>
+              <td>STEP/DIR + MS pins</td>
+              <td>Up to 1/16 microstep</td>
+              <td>Great for GPIO budgeting and shared-control-signal questions</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Actuator Quick Pick</h2>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Actuator</th>
+              <th>Control Style</th>
+              <th>Remember</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Stepper</td>
+              <td>Step count / pulse train</td>
+              <td>Open-loop is simple but cannot detect missed steps</td>
+            </tr>
+            <tr>
+              <td>Brushed DC</td>
+              <td>PWM + H-bridge</td>
+              <td>Encoder needed for closed-loop speed/position</td>
+            </tr>
+            <tr>
+              <td>Servo</td>
+              <td>Pulses at fixed frame rate</td>
+              <td>Typical RC form is about 50 Hz with width near 1.5 ms +/- 0.5 ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Open-Loop vs Closed-Loop</h2>
+        <ul>
+          <li><b>Open-loop:</b> simple, cheap, often fine when load is predictable.</li>
+          <li><b>Closed-loop:</b> uses encoder/feedback, better robustness and confidence in position.</li>
+          <li><b>Tradeoff:</b> more sensing, more computation, more complexity.</li>
+        </ul>
+        <div class="callout">
+          Good wording: "Closed-loop control improves confidence in position and can correct lost motion, but open-loop may be sufficient if the load is predictable and simplicity is preferred."
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>CPU Budget Reasoning</h2>
+        <div class="formula">CPU_load ~= C_irq * f_irq + C_block * f_block + C_ctrl * f_ctrl</div>
+        <p class="small">C terms are worst-case service times; f terms are event rates.</p>
+        <ul>
+          <li>Keep headroom for burst load, retries, and timing jitter.</li>
+          <li>Larger DMA blocks reduce CPU load but increase latency.</li>
+          <li>If CPU load is too high: reduce interrupt rate, increase block size, use DMA, lower sample/control rate, simplify processing.</li>
+        </ul>
+        <div class="callout">
+          Course-ready line: "The design is feasible if the CPU remains at least about 70% available under worst-case conditions."
+        </div>
+      </article>
+
+      <article class="block">
+        <h2>Failure Modes to Name Fast</h2>
+        <table class="tight">
+          <thead>
+            <tr>
+              <th>Failure Mode</th>
+              <th>Mitigation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Missed interrupts</td>
+              <td>Short ISR, lower event rate, use DMA</td>
+            </tr>
+            <tr>
+              <td>DMA/buffer overrun</td>
+              <td>Double buffering, larger blocks, lower rate</td>
+            </tr>
+            <tr>
+              <td>Aliasing</td>
+              <td>Higher sample rate + analog anti-alias filter</td>
+            </tr>
+            <tr>
+              <td>Race condition</td>
+              <td>Mutex/queue/critical section as appropriate</td>
+            </tr>
+            <tr>
+              <td>Pulse jitter / timing error</td>
+              <td>Hardware-timed pulses, not software delays</td>
+            </tr>
+            <tr>
+              <td>Insufficient torque at speed</td>
+              <td>Lower speed/accel, better driver, use feedback</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="block">
+        <h2>Reusable Short Answer Phrases</h2>
+        <ul>
+          <li>"This peripheral is memory-mapped, so the CPU configures it by writing control registers at fixed addresses."</li>
+          <li>"DMA is preferred because the transfer is repetitive and high-rate; the CPU only handles block-complete interrupts."</li>
+          <li>"SPI is appropriate because the peripheral is local, speed matters, and a dedicated chip-select is acceptable."</li>
+          <li>"I2C is appropriate because the design benefits from a shared addressed bus and low wire count."</li>
+          <li>"An anti-aliasing filter is needed so out-of-band content does not fold into the sampled signal."</li>
+          <li>"Open-loop stepper control is simpler but cannot detect missed steps without feedback."</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+</body>
+</html>
